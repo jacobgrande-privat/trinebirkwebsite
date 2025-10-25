@@ -58,11 +58,11 @@ const Dashboard: React.FC = () => {
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-lg">S</span>
+                <span className="text-white font-bold text-lg">A</span>
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">Site Backoffice</h1>
-                <p className="text-sm text-gray-600">Trine Birk - Socialdemokratiet</p>
+                <p className="text-sm text-gray-600">Trine Birk Andersen - Socialdemokratiet</p>
               </div>
             </div>
             
