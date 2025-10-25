@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { supabase } from '../../lib/supabase';
+import { useData } from '../../contexts/DataContext';
 import {
   Calendar,
   FileText,
@@ -121,52 +121,22 @@ const Dashboard: React.FC = () => {
   );
 };
 
-interface Event {
-  id: string;
-  title: string;
-  description: string | null;
-  location: string | null;
-  start_time: string;
-  end_time: string | null;
-  is_published: boolean;
-}
-
 const DashboardOverview: React.FC = () => {
   const { user } = useAuth();
-  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { events } = useData();
 
-  useEffect(() => {
-    loadUpcomingEvents();
-  }, []);
+  const upcomingEvents = events
+    .filter(event => event.date >= new Date())
+    .sort((a, b) => a.date.getTime() - b.date.getTime())
+    .slice(0, 10);
 
-  const loadUpcomingEvents = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .gte('start_time', new Date().toISOString())
-        .order('start_time', { ascending: true })
-        .limit(10);
-
-      if (error) throw error;
-      setUpcomingEvents(data || []);
-    } catch (error) {
-      console.error('Error loading events:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const formatEventDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('da-DK', {
+  const formatEventDate = (date: Date, time: string) => {
+    const dateStr = new Intl.DateTimeFormat('da-DK', {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
     }).format(date);
+    return `${dateStr} kl. ${time}`;
   };
 
   const colors = ['border-red-500', 'border-blue-500', 'border-green-500', 'border-yellow-500', 'border-purple-500'];
@@ -181,17 +151,15 @@ const DashboardOverview: React.FC = () => {
       <div className="bg-white rounded-lg shadow-sm p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-1">De næste kommende arrangementer</h3>
         <p className="text-sm text-gray-600 mb-4">Næste 10 - se Kalender for alle</p>
-        {loading ? (
-          <p className="text-gray-500">Indlæser arrangementer...</p>
-        ) : upcomingEvents.length === 0 ? (
+        {upcomingEvents.length === 0 ? (
           <p className="text-gray-500">Ingen kommende arrangementer</p>
         ) : (
           <div className="space-y-4">
             {upcomingEvents.map((event, index) => (
               <div key={event.id} className={`border-l-4 ${colors[index % colors.length]} pl-4`}>
                 <h4 className="font-medium text-gray-900">{event.title}</h4>
-                <p className="text-sm text-gray-600">{formatEventDate(event.start_time)}</p>
-                {event.location && <p className="text-sm text-gray-500">{event.location}</p>}
+                <p className="text-sm text-gray-600">{formatEventDate(event.date, event.time)}</p>
+                <p className="text-sm text-gray-500">{event.location}</p>
               </div>
             ))}
           </div>
