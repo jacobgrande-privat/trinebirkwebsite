@@ -147,7 +147,7 @@ const DashboardOverview: React.FC = () => {
         .select('*')
         .gte('start_time', new Date().toISOString())
         .order('start_time', { ascending: true })
-        .limit(5);
+        .limit(10);
 
       if (error) throw error;
       setUpcomingEvents(data || []);
@@ -179,7 +179,8 @@ const DashboardOverview: React.FC = () => {
       </div>
 
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Kommende Arrangementer</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-1">De næste kommende arrangementer</h3>
+        <p className="text-sm text-gray-600 mb-4">Næste 10 - se Kalender for alle</p>
         {loading ? (
           <p className="text-gray-500">Indlæser arrangementer...</p>
         ) : upcomingEvents.length === 0 ? (
