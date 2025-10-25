@@ -7,9 +7,11 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "create-admin": "node scripts/create-admin-user.js"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.76.1",
     "@tiptap/extension-color": "^3.7.1",
     "@tiptap/extension-highlight": "^3.7.1",
     "@tiptap/extension-image": "^3.7.1",

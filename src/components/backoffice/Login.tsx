@@ -111,13 +111,6 @@ const Login: React.FC = () => {
             </button>
           </div>
 
-          <div className="text-center">
-            <div className="text-sm text-gray-600 bg-gray-100 p-3 rounded">
-              <strong>Demo login:</strong><br />
-              Email: admin@lisenielsen.dk<br />
-              Adgangskode: admin123
-            </div>
-          </div>
         </form>
       </div>
     </div>
