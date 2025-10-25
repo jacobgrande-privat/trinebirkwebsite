@@ -96,26 +96,37 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const { data: backofficeUser } = await supabase
+      console.log('Attempting login for:', email);
+
+      const { data: backofficeUser, error: dbError } = await supabase
         .from('backoffice_users')
         .select('*')
         .eq('email', email)
         .maybeSingle();
 
+      console.log('Database check:', { backofficeUser, dbError });
+
       if (!backofficeUser) {
+        console.log('User not found in backoffice_users table');
         return false;
       }
 
+      console.log('Attempting Supabase auth...');
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
+      console.log('Auth response:', { user: data?.user?.email, error: error?.message });
+
       if (error || !data.user) {
+        console.error('Auth failed:', error);
         return false;
       }
 
+      console.log('Loading user data...');
       await loadUserData(data.user.id, data.user.email!);
+      console.log('Login successful!');
       return true;
     } catch (error) {
       console.error('Login error:', error);
