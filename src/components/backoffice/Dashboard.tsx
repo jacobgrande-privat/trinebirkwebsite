@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
 import {
   Calendar,
   FileText,
@@ -7,9 +8,6 @@ import {
   Settings,
   LogOut,
   BarChart3,
-  Mail,
-  Clock,
-  TrendingUp,
   Edit3
 } from 'lucide-react';
 import CalendarManager from './CalendarManager';
@@ -123,79 +121,80 @@ const Dashboard: React.FC = () => {
   );
 };
 
+interface Event {
+  id: string;
+  title: string;
+  description: string | null;
+  location: string | null;
+  start_time: string;
+  end_time: string | null;
+  is_published: boolean;
+}
+
 const DashboardOverview: React.FC = () => {
-  const stats = [
-    { name: 'Kommende Arrangementer', value: '12', icon: Calendar, color: 'text-blue-600' },
-    { name: 'Aktive Sider', value: '8', icon: FileText, color: 'text-green-600' },
-    { name: 'Nyhedsbrev Tilmeldinger', value: '1,247', icon: Mail, color: 'text-purple-600' },
-    { name: 'Månedlige Besøgende', value: '3,891', icon: TrendingUp, color: 'text-red-600' },
-  ];
+  const { user } = useAuth();
+  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadUpcomingEvents();
+  }, []);
+
+  const loadUpcomingEvents = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .gte('start_time', new Date().toISOString())
+        .order('start_time', { ascending: true })
+        .limit(5);
+
+      if (error) throw error;
+      setUpcomingEvents(data || []);
+    } catch (error) {
+      console.error('Error loading events:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatEventDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('da-DK', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
+  };
+
+  const colors = ['border-red-500', 'border-blue-500', 'border-green-500', 'border-yellow-500', 'border-purple-500'];
 
   return (
     <div className="space-y-8">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Dashboard Oversigt</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {stats.map((stat) => {
-            const Icon = stat.icon;
-            return (
-              <div key={stat.name} className="bg-white rounded-lg shadow-sm p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">{stat.name}</p>
-                    <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                  </div>
-                  <Icon className={`h-8 w-8 ${stat.color}`} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
+      <div className="bg-white rounded-lg shadow-sm p-6">
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Velkommen {user?.name}</h2>
+        <p className="text-gray-600">{user?.email}</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Seneste Aktivitet</h3>
+      <div className="bg-white rounded-lg shadow-sm p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Kommende Arrangementer</h3>
+        {loading ? (
+          <p className="text-gray-500">Indlæser arrangementer...</p>
+        ) : upcomingEvents.length === 0 ? (
+          <p className="text-gray-500">Ingen kommende arrangementer</p>
+        ) : (
           <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-sm text-gray-600">Ny side "Klimapolitik" oprettet</span>
-              <span className="text-xs text-gray-400 ml-auto">2 timer siden</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              <span className="text-sm text-gray-600">Arrangement "Borgermøde" opdateret</span>
-              <span className="text-xs text-gray-400 ml-auto">5 timer siden</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-              <span className="text-sm text-gray-600">23 nye nyhedsbrev tilmeldinger</span>
-              <span className="text-xs text-gray-400 ml-auto">1 dag siden</span>
-            </div>
+            {upcomingEvents.map((event, index) => (
+              <div key={event.id} className={`border-l-4 ${colors[index % colors.length]} pl-4`}>
+                <h4 className="font-medium text-gray-900">{event.title}</h4>
+                <p className="text-sm text-gray-600">{formatEventDate(event.start_time)}</p>
+                {event.location && <p className="text-sm text-gray-500">{event.location}</p>}
+              </div>
+            ))}
           </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Kommende Arrangementer</h3>
-          <div className="space-y-4">
-            <div className="border-l-4 border-red-500 pl-4">
-              <h4 className="font-medium text-gray-900">Borgermøde om Sundhed</h4>
-              <p className="text-sm text-gray-600">15. januar kl. 19:00</p>
-              <p className="text-sm text-gray-500">Kulturhuset, Aarhus</p>
-            </div>
-            <div className="border-l-4 border-blue-500 pl-4">
-              <h4 className="font-medium text-gray-900">Besøg på AUH</h4>
-              <p className="text-sm text-gray-600">18. januar kl. 10:00</p>
-              <p className="text-sm text-gray-500">Aarhus Universitetshospital</p>
-            </div>
-            <div className="border-l-4 border-green-500 pl-4">
-              <h4 className="font-medium text-gray-900">Valgdebat - DR</h4>
-              <p className="text-sm text-gray-600">22. januar kl. 20:00</p>
-              <p className="text-sm text-gray-500">DR Huset, Aarhus</p>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
