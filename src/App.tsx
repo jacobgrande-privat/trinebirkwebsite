@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronDown, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Users, Target, Heart, Globe, ArrowRight, Menu, X, Shield, Briefcase, Home, Leaf, Calendar as CalendarIcon } from 'lucide-react';
 import Calendar from './components/Calendar';
 import ContactForm from './components/ContactForm';
 import BackofficeApp from './components/backoffice/BackofficeApp';
+import NotFound from './components/NotFound';
 import { DataProvider, useData } from './contexts/DataContext';
 
 function App() {
@@ -16,16 +17,51 @@ function App() {
 function AppContent() {
   const { siteConfig, pages } = useData();
   const content = siteConfig.pageContent;
-  
+
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState('home');
+  const [show404, setShow404] = useState(false);
+
   // Check if we're in backoffice mode
   const isBackoffice = window.location.pathname.startsWith('/backoffice');
-  
+
   if (isBackoffice) {
     return <BackofficeApp />;
   }
 
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState('home');
+  useEffect(() => {
+    const path = window.location.pathname;
+
+    if (path === '/' || path === '') {
+      setShow404(false);
+      setActiveSection('home');
+      return;
+    }
+
+    const slug = path.replace(/^\//, '');
+
+    if (slug === 'calendar' || slug === 'kalender') {
+      setShow404(false);
+      setActiveSection('calendar');
+      return;
+    }
+
+    const validSections = ['om', 'vaerdier', 'maal', 'kontakt'];
+    if (validSections.includes(slug)) {
+      setShow404(false);
+      setActiveSection(slug);
+      return;
+    }
+
+    const pageExists = pages.find(page => page.slug === slug && page.published);
+    if (pageExists) {
+      setShow404(false);
+      setActiveSection(`page-${slug}`);
+      return;
+    }
+
+    setShow404(true);
+  }, [pages]);
 
   // Get dynamic page content
   const getPageBySlug = (slug: string) => {
@@ -33,15 +69,26 @@ function AppContent() {
   };
 
   const scrollToSection = (sectionId: string) => {
+    setShow404(false);
     setActiveSection(sectionId);
-    if (sectionId === 'calendar') return; // Don't scroll for calendar, it's handled by state
-    
+    if (sectionId === 'calendar') return;
+
     const element = document.getElementById(sectionId);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
       setIsMenuOpen(false);
     }
   };
+
+  if (show404) {
+    return (
+      <NotFound
+        onNavigateHome={() => scrollToSection('home')}
+        onNavigateCalendar={() => scrollToSection('calendar')}
+        onNavigateContact={() => scrollToSection('kontakt')}
+      />
+    );
+  }
 
   // Render dynamic page content
   const renderDynamicPage = (slug: string) => {
