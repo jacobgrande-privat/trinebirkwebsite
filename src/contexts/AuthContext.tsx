@@ -96,37 +96,35 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      console.log('Attempting login for:', email);
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/backoffice-login`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({ email, password }),
+        }
+      );
 
-      const { data: backofficeUser, error: dbError } = await supabase
-        .from('backoffice_users')
-        .select('*')
-        .eq('email', email)
-        .maybeSingle();
+      const result = await response.json();
 
-      console.log('Database check:', { backofficeUser, dbError });
-
-      if (!backofficeUser) {
-        console.log('User not found in backoffice_users table');
+      if (!result.success || !result.session) {
         return false;
       }
 
-      console.log('Attempting Supabase auth...');
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
+      await supabase.auth.setSession({
+        access_token: result.session.access_token,
+        refresh_token: result.session.refresh_token,
       });
 
-      console.log('Auth response:', { user: data?.user?.email, error: error?.message });
+      setAuthState({
+        user: result.user,
+        isAuthenticated: true,
+        isLoading: false,
+      });
 
-      if (error || !data.user) {
-        console.error('Auth failed:', error);
-        return false;
-      }
-
-      console.log('Loading user data...');
-      await loadUserData(data.user.id, data.user.email!);
-      console.log('Login successful!');
       return true;
     } catch (error) {
       console.error('Login error:', error);
