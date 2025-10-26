@@ -338,10 +338,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         date: new Date(event.start_time),
         time: new Date(event.start_time).toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' }),
         location: event.location || '',
-        type: 'public',
+        type: event.event_type || 'public',
         description: event.description || '',
-        content: event.description || '',
-        image: '',
+        content: event.content || event.description || '',
+        image: event.image_url || '',
         createdBy: event.created_by || '',
         createdAt: new Date(event.created_at),
         updatedAt: new Date(event.updated_at)
@@ -399,6 +399,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         description: eventData.description,
         location: eventData.location,
         start_time: startTime.toISOString(),
+        event_type: eventData.type,
+        content: eventData.content || '',
+        image_url: eventData.image || '',
         is_published: true
       })
       .select()
@@ -418,6 +421,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (eventData.title) updateData.title = eventData.title;
     if (eventData.description) updateData.description = eventData.description;
     if (eventData.location) updateData.location = eventData.location;
+    if (eventData.type) updateData.event_type = eventData.type;
+    if (eventData.content !== undefined) updateData.content = eventData.content;
+    if (eventData.image !== undefined) updateData.image_url = eventData.image;
 
     if (eventData.date || eventData.time) {
       const existingEvent = events.find(e => e.id === id);
