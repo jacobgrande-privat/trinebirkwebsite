@@ -8,15 +8,17 @@ import {
   Settings,
   LogOut,
   BarChart3,
-  Edit3
+  Edit3,
+  Mail
 } from 'lucide-react';
 import CalendarManager from './CalendarManager';
 import PageManager from './PageManager';
 import UserManager from './UserManager';
 import SiteSettings from './SiteSettings';
 import ContentEditor from './ContentEditor';
+import EmailSettings from './EmailSettings';
 
-type ActiveTab = 'overview' | 'calendar' | 'pages' | 'content' | 'users' | 'settings';
+type ActiveTab = 'overview' | 'calendar' | 'pages' | 'content' | 'users' | 'settings' | 'email';
 
 const Dashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
@@ -28,6 +30,7 @@ const Dashboard: React.FC = () => {
     { id: 'pages', name: 'Sider', icon: FileText },
     { id: 'content', name: 'Sideindhold', icon: Edit3 },
     ...(user?.role === 'admin' ? [{ id: 'users', name: 'Brugere', icon: Users }] : []),
+    ...(user?.role === 'admin' ? [{ id: 'email', name: 'Email', icon: Mail }] : []),
     ...(user?.role === 'admin' ? [{ id: 'settings', name: 'Indstillinger', icon: Settings }] : []),
   ];
 
@@ -43,6 +46,8 @@ const Dashboard: React.FC = () => {
         return <ContentEditor />;
       case 'users':
         return user?.role === 'admin' ? <UserManager /> : <div>Ingen adgang</div>;
+      case 'email':
+        return user?.role === 'admin' ? <EmailSettings /> : <div>Ingen adgang</div>;
       case 'settings':
         return user?.role === 'admin' ? <SiteSettings /> : <div>Ingen adgang</div>;
       default:
