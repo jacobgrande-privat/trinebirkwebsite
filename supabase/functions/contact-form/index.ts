@@ -1,6 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -26,60 +25,63 @@ interface EmailSettings {
   enabled: boolean;
 }
 
-async function sendEmail(settings: EmailSettings, formData: ContactFormData) {
-  console.log('Preparing to send email via SMTP...');
-  console.log('SMTP Host:', settings.smtp_host);
-  console.log('SMTP Port:', settings.smtp_port);
+async function sendEmailViaBrevo(settings: EmailSettings, formData: ContactFormData) {
+  console.log('Sending email via Brevo API...');
   console.log('From:', settings.from_email);
   console.log('To:', settings.recipient_email);
 
-  try {
-    const client = new SMTPClient({
-      connection: {
-        hostname: settings.smtp_host,
-        port: settings.smtp_port,
-        tls: true,
-        auth: {
-          username: settings.smtp_username,
-          password: settings.smtp_password,
-        },
+  const brevoApiUrl = 'https://api.brevo.com/v3/smtp/email';
+
+  const emailPayload = {
+    sender: {
+      name: settings.from_name,
+      email: settings.from_email,
+    },
+    to: [
+      {
+        email: settings.recipient_email,
       },
-    });
-
-    console.log('Connecting to SMTP server...');
-
-    await client.send({
-      from: `"${settings.from_name}" <${settings.from_email}>`,
-      to: settings.recipient_email,
-      subject: `Ny kontaktbesked fra ${formData.name}`,
-      content: `Ny kontaktbesked\n\nNavn: ${formData.name}\nEmail: ${formData.email}\n\nBesked:\n${formData.message}\n\n---\nDenne besked blev sendt fra kontaktformularen på din hjemmeside.`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #333;">Ny kontaktbesked</h2>
-          <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">
-            <p style="margin: 10px 0;"><strong>Navn:</strong> ${formData.name}</p>
-            <p style="margin: 10px 0;"><strong>Email:</strong> ${formData.email}</p>
-          </div>
-          <div style="background-color: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
-            <p style="margin: 0 0 10px 0;"><strong>Besked:</strong></p>
-            <p style="margin: 0; white-space: pre-wrap;">${formData.message}</p>
-          </div>
-          <p style="color: #666; font-size: 12px; margin-top: 20px;">
-            Denne besked blev sendt fra kontaktformularen på din hjemmeside.
-          </p>
+    ],
+    subject: `Ny kontaktbesked fra ${formData.name}`,
+    textContent: `Ny kontaktbesked\n\nNavn: ${formData.name}\nEmail: ${formData.email}\n\nBesked:\n${formData.message}\n\n---\nDenne besked blev sendt fra kontaktformularen på din hjemmeside.`,
+    htmlContent: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Ny kontaktbesked</h2>
+        <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">
+          <p style="margin: 10px 0;"><strong>Navn:</strong> ${formData.name}</p>
+          <p style="margin: 10px 0;"><strong>Email:</strong> ${formData.email}</p>
         </div>
-      `,
-    });
+        <div style="background-color: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
+          <p style="margin: 0 0 10px 0;"><strong>Besked:</strong></p>
+          <p style="margin: 0; white-space: pre-wrap;">${formData.message}</p>
+        </div>
+        <p style="color: #666; font-size: 12px; margin-top: 20px;">
+          Denne besked blev sendt fra kontaktformularen på din hjemmeside.
+        </p>
+      </div>
+    `,
+  };
 
-    await client.close();
+  const response = await fetch(brevoApiUrl, {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'api-key': settings.smtp_password,
+    },
+    body: JSON.stringify(emailPayload),
+  });
 
-    console.log('✓ Email sent successfully!');
-
-  } catch (error) {
-    console.error('=== SMTP ERROR ===');
-    console.error('Error:', error);
-    throw error;
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Brevo API error:', response.status, errorText);
+    throw new Error(`Failed to send email via Brevo: ${response.status} ${errorText}`);
   }
+
+  const result = await response.json();
+  console.log('✓ Email sent successfully via Brevo API!', result);
+
+  return result;
 }
 
 Deno.serve(async (req: Request) => {
@@ -218,10 +220,10 @@ Deno.serve(async (req: Request) => {
 
     console.log('✓ Email is enabled');
 
-    if (!emailSettings.smtp_host || !emailSettings.smtp_username || !emailSettings.smtp_password) {
-      console.error("SMTP settings incomplete!");
+    if (!emailSettings.smtp_password || !emailSettings.from_email || !emailSettings.recipient_email) {
+      console.error("Email settings incomplete!");
       return new Response(
-        JSON.stringify({ error: "SMTP settings incomplete" }),
+        JSON.stringify({ error: "Email settings incomplete" }),
         {
           status: 500,
           headers: {
@@ -232,7 +234,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    await sendEmail(emailSettings, formData);
+    await sendEmailViaBrevo(emailSettings, formData);
     console.log('✓✓✓ EMAIL SENT SUCCESSFULLY! ✓✓✓');
 
     return new Response(
