@@ -14,42 +14,38 @@ interface ContactFormData {
 }
 
 interface EmailSettings {
-  provider: 'sendgrid' | 'gmail';
-  sendgrid_api_key: string;
-  gmail_smtp_host: string;
-  gmail_smtp_port: number;
-  gmail_smtp_username: string;
-  gmail_smtp_password: string;
-  gmail_smtp_secure: boolean;
+  smtp_host: string;
+  smtp_port: number;
+  smtp_username: string;
+  smtp_password: string;
+  smtp_secure: boolean;
   from_email: string;
   from_name: string;
   recipient_email: string;
   enabled: boolean;
 }
 
-async function sendViaGmail(settings: EmailSettings, formData: ContactFormData) {
-  console.log('Attempting to send via Gmail SMTP...');
-  console.log('Gmail settings:', {
-    host: settings.gmail_smtp_host,
-    port: settings.gmail_smtp_port,
-    username: settings.gmail_smtp_username,
-    secure: settings.gmail_smtp_secure,
-    hasPassword: !!settings.gmail_smtp_password
+async function sendViaSMTP(settings: EmailSettings, formData: ContactFormData) {
+  console.log('Attempting to send via SMTP using nodemailer...');
+  console.log('SMTP settings:', {
+    host: settings.smtp_host,
+    port: settings.smtp_port,
+    username: settings.smtp_username,
+    secure: settings.smtp_secure,
+    hasPassword: !!settings.smtp_password
   });
   
   try {
-    // Try dynamic import
     const nodemailer = await import('npm:nodemailer@6.9.0');
     console.log('Nodemailer imported successfully');
     
-    // Create transporter
     const transporter = nodemailer.default.createTransport({
-      host: settings.gmail_smtp_host,
-      port: settings.gmail_smtp_port,
-      secure: settings.gmail_smtp_secure,
+      host: settings.smtp_host,
+      port: settings.smtp_port,
+      secure: settings.smtp_secure,
       auth: {
-        user: settings.gmail_smtp_username,
-        pass: settings.gmail_smtp_password,
+        user: settings.smtp_username,
+        pass: settings.smtp_password,
       },
       debug: true,
       logger: true,
@@ -57,11 +53,9 @@ async function sendViaGmail(settings: EmailSettings, formData: ContactFormData) 
 
     console.log('Transporter created, verifying connection...');
     
-    // Verify connection
     await transporter.verify();
     console.log('SMTP connection verified successfully!');
 
-    // Send email
     console.log('Sending email...');
     const info = await transporter.sendMail({
       from: `"${settings.from_name}" <${settings.from_email}>`,
@@ -86,73 +80,17 @@ async function sendViaGmail(settings: EmailSettings, formData: ContactFormData) 
       `,
     });
 
-    console.log('Email sent successfully via Gmail!');
+    console.log('Email sent successfully!');
     console.log('Message ID:', info.messageId);
     console.log('Response:', info.response);
     
   } catch (error) {
-    console.error('=== Gmail SMTP ERROR ===');
+    console.error('=== SMTP ERROR ===');
     console.error('Error type:', error?.constructor?.name);
     console.error('Error message:', error instanceof Error ? error.message : String(error));
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
-    console.error('Full error:', JSON.stringify(error, null, 2));
     throw error;
   }
-}
-
-async function sendViaSendGrid(settings: EmailSettings, formData: ContactFormData) {
-  console.log('Sending via SendGrid...');
-  
-  const emailBody = {
-    personalizations: [
-      {
-        to: [{ email: settings.recipient_email }],
-        subject: `Ny kontaktbesked fra ${formData.name}`,
-      },
-    ],
-    from: {
-      email: settings.from_email,
-      name: settings.from_name,
-    },
-    content: [
-      {
-        type: "text/html",
-        value: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #333;">Ny kontaktbesked</h2>
-            <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">
-              <p style="margin: 10px 0;"><strong>Navn:</strong> ${formData.name}</p>
-              <p style="margin: 10px 0;"><strong>Email:</strong> ${formData.email}</p>
-            </div>
-            <div style="background-color: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
-              <p style="margin: 0 0 10px 0;"><strong>Besked:</strong></p>
-              <p style="margin: 0; white-space: pre-wrap;">${formData.message}</p>
-            </div>
-            <p style="color: #666; font-size: 12px; margin-top: 20px;">
-              Denne besked blev sendt fra kontaktformularen på din hjemmeside.
-            </p>
-          </div>
-        `,
-      },
-    ],
-  };
-
-  const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${settings.sendgrid_api_key}`,
-    },
-    body: JSON.stringify(emailBody),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('SendGrid API error:', errorText);
-    throw new Error(`SendGrid error: ${errorText}`);
-  }
-  
-  console.log('Email sent successfully via SendGrid');
 }
 
 Deno.serve(async (req: Request) => {
@@ -187,7 +125,6 @@ Deno.serve(async (req: Request) => {
     console.log('Name:', formData.name);
     console.log('Email:', formData.email);
 
-    // Validate required fields
     if (!formData.name || !formData.email || !formData.message) {
       console.error('Missing required fields');
       return new Response(
@@ -202,7 +139,6 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Validate field lengths
     if (formData.name.length > 80) {
       return new Response(
         JSON.stringify({ error: "Name too long (max 80 characters)" }),
@@ -242,7 +178,6 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Check line count (max 40 lines)
     const lineCount = formData.message.split('\n').length;
     if (lineCount > 40) {
       return new Response(
@@ -257,7 +192,6 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Insert message into database
     console.log('Saving message to database...');
     const { data: messageData, error: dbError } = await supabase
       .from("contact_messages")
@@ -285,7 +219,6 @@ Deno.serve(async (req: Request) => {
 
     console.log('✓ Message saved to database successfully');
 
-    // Get email settings
     console.log('Fetching email settings...');
     const { data: emailSettings, error: settingsError } = await supabase
       .from("email_settings")
@@ -297,38 +230,22 @@ Deno.serve(async (req: Request) => {
       console.error('Error fetching email settings:', settingsError);
     }
 
-    // If email is enabled and configured, send email based on provider
     if (emailSettings && emailSettings.enabled) {
       console.log('✓ Email is enabled');
-      console.log('Provider:', emailSettings.provider);
       
       try {
-        if (emailSettings.provider === 'gmail') {
-          console.log('Using Gmail provider...');
-          // Validate Gmail settings
-          if (!emailSettings.gmail_smtp_host || !emailSettings.gmail_smtp_username || !emailSettings.gmail_smtp_password) {
-            console.error("Gmail SMTP settings incomplete!");
-            console.error('Host:', emailSettings.gmail_smtp_host);
-            console.error('Username:', emailSettings.gmail_smtp_username);
-            console.error('Has password:', !!emailSettings.gmail_smtp_password);
-          } else {
-            await sendViaGmail(emailSettings, formData);
-            console.log('✓✓✓ EMAIL SENT SUCCESSFULLY! ✓✓✓');
-          }
-        } else if (emailSettings.provider === 'sendgrid') {
-          console.log('Using SendGrid provider...');
-          // Validate SendGrid settings
-          if (!emailSettings.sendgrid_api_key) {
-            console.error("SendGrid API key missing");
-          } else {
-            await sendViaSendGrid(emailSettings, formData);
-            console.log('✓✓✓ EMAIL SENT SUCCESSFULLY! ✓✓✓');
-          }
+        if (!emailSettings.smtp_host || !emailSettings.smtp_username || !emailSettings.smtp_password) {
+          console.error("SMTP settings incomplete!");
+          console.error('Host:', emailSettings.smtp_host);
+          console.error('Username:', emailSettings.smtp_username);
+          console.error('Has password:', !!emailSettings.smtp_password);
+        } else {
+          await sendViaSMTP(emailSettings, formData);
+          console.log('✓✓✓ EMAIL SENT SUCCESSFULLY! ✓✓✓');
         }
       } catch (emailError) {
         console.error("=== EMAIL SENDING FAILED ===");
         console.error("Error:", emailError);
-        // Don't fail the entire request if email fails, message is still saved
       }
     } else {
       console.log('Email sending is disabled or settings not found');

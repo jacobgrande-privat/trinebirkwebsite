@@ -4,13 +4,11 @@ import { supabase } from '../../lib/supabase';
 
 interface EmailSettingsData {
   id: string;
-  provider: 'sendgrid' | 'gmail';
-  sendgrid_api_key: string;
-  gmail_smtp_host: string;
-  gmail_smtp_port: number;
-  gmail_smtp_username: string;
-  gmail_smtp_password: string;
-  gmail_smtp_secure: boolean;
+  smtp_host: string;
+  smtp_port: number;
+  smtp_username: string;
+  smtp_password: string;
+  smtp_secure: boolean;
   from_email: string;
   from_name: string;
   recipient_email: string;
@@ -20,13 +18,11 @@ interface EmailSettingsData {
 export default function EmailSettings() {
   const [settings, setSettings] = useState<EmailSettingsData>({
     id: '00000000-0000-0000-0000-000000000001',
-    provider: 'sendgrid',
-    sendgrid_api_key: '',
-    gmail_smtp_host: 'smtp.gmail.com',
-    gmail_smtp_port: 587,
-    gmail_smtp_username: '',
-    gmail_smtp_password: '',
-    gmail_smtp_secure: true,
+    smtp_host: 'smtp.simply.com',
+    smtp_port: 587,
+    smtp_username: '',
+    smtp_password: '',
+    smtp_secure: false,
     from_email: '',
     from_name: '',
     recipient_email: '',
@@ -34,8 +30,7 @@ export default function EmailSettings() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [showSendGridKey, setShowSendGridKey] = useState(false);
-  const [showGmailPassword, setShowGmailPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
@@ -74,13 +69,11 @@ export default function EmailSettings() {
       const { error } = await supabase
         .from('email_settings')
         .update({
-          provider: settings.provider,
-          sendgrid_api_key: settings.sendgrid_api_key,
-          gmail_smtp_host: settings.gmail_smtp_host,
-          gmail_smtp_port: settings.gmail_smtp_port,
-          gmail_smtp_username: settings.gmail_smtp_username,
-          gmail_smtp_password: settings.gmail_smtp_password,
-          gmail_smtp_secure: settings.gmail_smtp_secure,
+          smtp_host: settings.smtp_host,
+          smtp_port: settings.smtp_port,
+          smtp_username: settings.smtp_username,
+          smtp_password: settings.smtp_password,
+          smtp_secure: settings.smtp_secure,
           from_email: settings.from_email,
           from_name: settings.from_name,
           recipient_email: settings.recipient_email,
@@ -156,192 +149,111 @@ export default function EmailSettings() {
               </p>
             </div>
 
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
-              <label className="block text-sm font-medium text-slate-700 mb-3">
-                Vælg Email Provider *
-              </label>
-              <div className="flex gap-4">
-                <label className={`flex-1 flex items-center justify-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                  settings.provider === 'sendgrid'
-                    ? 'border-blue-600 bg-blue-50'
-                    : 'border-slate-300 bg-white hover:border-slate-400'
-                }`}>
+            <div className="space-y-4 p-4 border-2 border-blue-200 rounded-lg bg-blue-50">
+              <div className="flex items-start gap-2 pb-3 border-b border-blue-200">
+                <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div className="text-sm text-blue-800">
+                  <p className="font-medium mb-1">SMTP Server Opsætning</p>
+                  <p className="text-blue-700">
+                    Indtast dine SMTP server oplysninger. Dette fungerer med alle standard SMTP servere som Simply, One.com, Gmail, etc.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-900 mb-2">
+                    Udgående mailserver *
+                  </label>
                   <input
-                    type="radio"
-                    value="sendgrid"
-                    checked={settings.provider === 'sendgrid'}
-                    onChange={(e) => setSettings({ ...settings, provider: e.target.value as 'sendgrid' })}
-                    className="w-4 h-4 text-blue-600"
+                    type="text"
+                    value={settings.smtp_host}
+                    onChange={(e) => setSettings({ ...settings, smtp_host: e.target.value })}
+                    placeholder="smtp.simply.com"
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
                   />
-                  <span className={`font-medium ${
-                    settings.provider === 'sendgrid' ? 'text-blue-900' : 'text-slate-700'
-                  }`}>
-                    SendGrid
-                  </span>
-                </label>
-                <label className={`flex-1 flex items-center justify-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                  settings.provider === 'gmail'
-                    ? 'border-blue-600 bg-blue-50'
-                    : 'border-slate-300 bg-white hover:border-slate-400'
-                }`}>
+                  <p className="text-xs text-slate-600 mt-1">
+                    F.eks. smtp.simply.com, smtp.gmail.com
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-900 mb-2">
+                    SMTP Port *
+                  </label>
                   <input
-                    type="radio"
-                    value="gmail"
-                    checked={settings.provider === 'gmail'}
-                    onChange={(e) => setSettings({ ...settings, provider: e.target.value as 'gmail' })}
-                    className="w-4 h-4 text-blue-600"
+                    type="number"
+                    value={settings.smtp_port}
+                    onChange={(e) => setSettings({ ...settings, smtp_port: parseInt(e.target.value) })}
+                    placeholder="587"
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
                   />
-                  <span className={`font-medium ${
-                    settings.provider === 'gmail' ? 'text-blue-900' : 'text-slate-700'
-                  }`}>
-                    Gmail SMTP
-                  </span>
+                  <p className="text-xs text-slate-600 mt-1">
+                    Standard: 587 (STARTTLS) eller 465 (SSL)
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-900 mb-2">
+                  Udgående brugernavn (Email adresse) *
                 </label>
+                <input
+                  type="email"
+                  value={settings.smtp_username}
+                  onChange={(e) => setSettings({ ...settings, smtp_username: e.target.value })}
+                  placeholder="din@email.dk"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                />
+                <p className="text-xs text-slate-600 mt-1">
+                  Din email adresse
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-900 mb-2">
+                  Udgående adgangskode *
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={settings.smtp_password}
+                    onChange={(e) => setSettings({ ...settings, smtp_password: e.target.value })}
+                    placeholder="••••••••"
+                    className="w-full px-4 py-2 pr-12 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+                <p className="text-xs text-slate-600 mt-1">
+                  Adgangskoden til din email konto
+                </p>
+              </div>
+
+              <div>
+                <label className="flex items-center gap-2 text-sm font-medium text-slate-900">
+                  <input
+                    type="checkbox"
+                    checked={settings.smtp_secure}
+                    onChange={(e) => setSettings({ ...settings, smtp_secure: e.target.checked })}
+                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                  />
+                  Brug SSL (kun til port 465)
+                </label>
+                <p className="text-xs text-slate-600 mt-1 ml-6">
+                  Marker kun hvis du bruger port 465. Port 587 bruger STARTTLS automatisk.
+                </p>
               </div>
             </div>
-
-            {settings.provider === 'sendgrid' && (
-              <div className="space-y-4 p-4 border-2 border-blue-200 rounded-lg bg-blue-50">
-                <div className="flex items-start gap-2 pb-3 border-b border-blue-200">
-                  <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm text-blue-800">
-                    <p className="font-medium mb-1">SendGrid Opsætning</p>
-                    <ol className="list-decimal list-inside space-y-1 text-blue-700">
-                      <li>Opret en konto på <a href="https://sendgrid.com" target="_blank" rel="noopener noreferrer" className="underline">sendgrid.com</a></li>
-                      <li>Opret en API-nøgle under Settings → API Keys</li>
-                      <li>Verificer din afsender email under Settings → Sender Authentication</li>
-                    </ol>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-900 mb-2">
-                    SendGrid API-nøgle *
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showSendGridKey ? 'text' : 'password'}
-                      value={settings.sendgrid_api_key}
-                      onChange={(e) => setSettings({ ...settings, sendgrid_api_key: e.target.value })}
-                      placeholder="SG.xxxxxxxxxxxxxxxxxx"
-                      className="w-full px-4 py-2 pr-12 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      required={settings.provider === 'sendgrid'}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowSendGridKey(!showSendGridKey)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700"
-                    >
-                      {showSendGridKey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
-                  </div>
-                  <p className="text-xs text-slate-600 mt-1">
-                    Din SendGrid API-nøgle starter typisk med "SG."
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {settings.provider === 'gmail' && (
-              <div className="space-y-4 p-4 border-2 border-green-200 rounded-lg bg-green-50">
-                <div className="flex items-start gap-2 pb-3 border-b border-green-200">
-                  <AlertCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm text-green-800">
-                    <p className="font-medium mb-1">Gmail SMTP Opsætning</p>
-                    <ol className="list-decimal list-inside space-y-1 text-green-700">
-                      <li>Aktiver 2-faktor autentifikation på din Gmail konto</li>
-                      <li>Opret en App Password på <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" className="underline">myaccount.google.com/apppasswords</a></li>
-                      <li>Brug App Password som adgangskode nedenfor</li>
-                    </ol>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-900 mb-2">
-                      SMTP Host *
-                    </label>
-                    <input
-                      type="text"
-                      value={settings.gmail_smtp_host}
-                      onChange={(e) => setSettings({ ...settings, gmail_smtp_host: e.target.value })}
-                      placeholder="smtp.gmail.com"
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      required={settings.provider === 'gmail'}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-900 mb-2">
-                      SMTP Port *
-                    </label>
-                    <input
-                      type="number"
-                      value={settings.gmail_smtp_port}
-                      onChange={(e) => setSettings({ ...settings, gmail_smtp_port: parseInt(e.target.value) })}
-                      placeholder="587"
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      required={settings.provider === 'gmail'}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-900 mb-2">
-                    Gmail Email Adresse *
-                  </label>
-                  <input
-                    type="email"
-                    value={settings.gmail_smtp_username}
-                    onChange={(e) => setSettings({ ...settings, gmail_smtp_username: e.target.value })}
-                    placeholder="din.email@gmail.com"
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    required={settings.provider === 'gmail'}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-900 mb-2">
-                    Gmail App Password *
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showGmailPassword ? 'text' : 'password'}
-                      value={settings.gmail_smtp_password}
-                      onChange={(e) => setSettings({ ...settings, gmail_smtp_password: e.target.value })}
-                      placeholder="xxxx xxxx xxxx xxxx"
-                      className="w-full px-4 py-2 pr-12 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      required={settings.provider === 'gmail'}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowGmailPassword(!showGmailPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700"
-                    >
-                      {showGmailPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
-                  </div>
-                  <p className="text-xs text-slate-600 mt-1">
-                    Brug en App Password, ikke din almindelige Gmail adgangskode
-                  </p>
-                </div>
-
-                <div>
-                  <label className="flex items-center gap-2 text-sm font-medium text-slate-900">
-                    <input
-                      type="checkbox"
-                      checked={settings.gmail_smtp_secure}
-                      onChange={(e) => setSettings({ ...settings, gmail_smtp_secure: e.target.checked })}
-                      className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                    />
-                    Brug sikker forbindelse (TLS/SSL)
-                  </label>
-                  <p className="text-xs text-slate-600 mt-1 ml-6">
-                    Anbefalet: Lad dette være aktiveret
-                  </p>
-                </div>
-              </div>
-            )}
 
             <div className="pt-4 border-t border-slate-200">
               <h3 className="text-sm font-medium text-slate-900 mb-4">Generelle Indstillinger</h3>
@@ -360,9 +272,7 @@ export default function EmailSettings() {
                       required
                     />
                     <p className="text-xs text-slate-500 mt-1">
-                      {settings.provider === 'sendgrid'
-                        ? 'Skal være verificeret i SendGrid'
-                        : 'For Gmail, brug samme som Gmail Email Adresse'}
+                      Skal ofte være samme som brugernavn
                     </p>
                   </div>
 
@@ -401,17 +311,7 @@ export default function EmailSettings() {
             </div>
           </div>
 
-          <div className="flex justify-between items-center pt-4 border-t border-slate-200">
-            <div className="text-sm text-slate-600">
-              <span className="font-medium">Aktiv provider:</span>{' '}
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                settings.provider === 'sendgrid'
-                  ? 'bg-blue-100 text-blue-800'
-                  : 'bg-green-100 text-green-800'
-              }`}>
-                {settings.provider === 'sendgrid' ? 'SendGrid' : 'Gmail SMTP'}
-              </span>
-            </div>
+          <div className="flex justify-end items-center pt-4 border-t border-slate-200">
             <button
               type="submit"
               disabled={saving}
