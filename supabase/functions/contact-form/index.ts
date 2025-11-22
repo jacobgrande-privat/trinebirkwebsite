@@ -25,63 +25,72 @@ interface EmailSettings {
   enabled: boolean;
 }
 
-async function sendEmailViaBrevo(settings: EmailSettings, formData: ContactFormData) {
-  console.log('Sending email via Brevo API...');
-  console.log('From:', settings.from_email);
-  console.log('To:', settings.recipient_email);
-
-  const brevoApiUrl = 'https://api.brevo.com/v3/smtp/email';
-
-  const emailPayload = {
-    sender: {
-      name: settings.from_name,
-      email: settings.from_email,
-    },
-    to: [
-      {
-        email: settings.recipient_email,
-      },
-    ],
-    subject: `Ny kontaktbesked fra ${formData.name}`,
-    textContent: `Ny kontaktbesked\n\nNavn: ${formData.name}\nEmail: ${formData.email}\n\nBesked:\n${formData.message}\n\n---\nDenne besked blev sendt fra kontaktformularen på din hjemmeside.`,
-    htmlContent: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #333;">Ny kontaktbesked</h2>
-        <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">
-          <p style="margin: 10px 0;"><strong>Navn:</strong> ${formData.name}</p>
-          <p style="margin: 10px 0;"><strong>Email:</strong> ${formData.email}</p>
-        </div>
-        <div style="background-color: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
-          <p style="margin: 0 0 10px 0;"><strong>Besked:</strong></p>
-          <p style="margin: 0; white-space: pre-wrap;">${formData.message}</p>
-        </div>
-        <p style="color: #666; font-size: 12px; margin-top: 20px;">
-          Denne besked blev sendt fra kontaktformularen på din hjemmeside.
-        </p>
-      </div>
-    `,
-  };
-
-  const response = await fetch(brevoApiUrl, {
-    method: 'POST',
-    headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-      'api-key': settings.smtp_password,
-    },
-    body: JSON.stringify(emailPayload),
+async function sendViaSMTP(settings: EmailSettings, formData: ContactFormData) {
+  console.log('Attempting to send via SMTP using nodemailer...');
+  console.log('SMTP settings:', {
+    host: settings.smtp_host,
+    port: settings.smtp_port,
+    username: settings.smtp_username,
+    secure: settings.smtp_secure,
+    hasPassword: !!settings.smtp_password
   });
+  
+  try {
+    const nodemailer = await import('npm:nodemailer@6.9.0');
+    console.log('Nodemailer imported successfully');
+    
+    const transporter = nodemailer.default.createTransport({
+      host: settings.smtp_host,
+      port: settings.smtp_port,
+      secure: settings.smtp_secure,
+      auth: {
+        user: settings.smtp_username,
+        pass: settings.smtp_password,
+      },
+      debug: true,
+      logger: true,
+    });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Brevo API error:', response.status, errorText);
-    throw new Error(`Failed to send email via Brevo: ${response.status} ${errorText}`);
+    console.log('Transporter created, verifying connection...');
+    
+    await transporter.verify();
+    console.log('SMTP connection verified successfully!');
+
+    console.log('Sending email...');
+    const info = await transporter.sendMail({
+      from: `"${settings.from_name}" <${settings.from_email}>`,
+      to: settings.recipient_email,
+      subject: `Ny kontaktbesked fra ${formData.name}`,
+      text: `Ny kontaktbesked\n\nNavn: ${formData.name}\nEmail: ${formData.email}\n\nBesked:\n${formData.message}\n\n---\nDenne besked blev sendt fra kontaktformularen på din hjemmeside.`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">Ny kontaktbesked</h2>
+          <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 10px 0;"><strong>Navn:</strong> ${formData.name}</p>
+            <p style="margin: 10px 0;"><strong>Email:</strong> ${formData.email}</p>
+          </div>
+          <div style="background-color: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
+            <p style="margin: 0 0 10px 0;"><strong>Besked:</strong></p>
+            <p style="margin: 0; white-space: pre-wrap;">${formData.message}</p>
+          </div>
+          <p style="color: #666; font-size: 12px; margin-top: 20px;">
+            Denne besked blev sendt fra kontaktformularen på din hjemmeside.
+          </p>
+        </div>
+      `,
+    });
+
+    console.log('Email sent successfully!');
+    console.log('Message ID:', info.messageId);
+    console.log('Response:', info.response);
+    
+  } catch (error) {
+    console.error('=== SMTP ERROR ===');
+    console.error('Error type:', error?.constructor?.name);
+    console.error('Error message:', error instanceof Error ? error.message : String(error));
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
+    throw error;
   }
-
-  const result = await response.json();
-  console.log('✓ Email sent successfully via Brevo API!', result);
-
-  return result;
 }
 
 Deno.serve(async (req: Request) => {
@@ -219,11 +228,14 @@ Deno.serve(async (req: Request) => {
     }
 
     console.log('✓ Email is enabled');
-
-    if (!emailSettings.smtp_password || !emailSettings.from_email || !emailSettings.recipient_email) {
-      console.error("Email settings incomplete!");
+    
+    if (!emailSettings.smtp_host || !emailSettings.smtp_username || !emailSettings.smtp_password) {
+      console.error("SMTP settings incomplete!");
+      console.error('Host:', emailSettings.smtp_host);
+      console.error('Username:', emailSettings.smtp_username);
+      console.error('Has password:', !!emailSettings.smtp_password);
       return new Response(
-        JSON.stringify({ error: "Email settings incomplete" }),
+        JSON.stringify({ error: "SMTP settings incomplete" }),
         {
           status: 500,
           headers: {
@@ -233,10 +245,11 @@ Deno.serve(async (req: Request) => {
         }
       );
     }
-
-    await sendEmailViaBrevo(emailSettings, formData);
+    
+    await sendViaSMTP(emailSettings, formData);
     console.log('✓✓✓ EMAIL SENT SUCCESSFULLY! ✓✓✓');
 
+    console.log('=== REQUEST COMPLETED SUCCESSFULLY ===');
     return new Response(
       JSON.stringify({ success: true, message: "Message sent successfully" }),
       {
@@ -250,11 +263,9 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     console.error("=== FATAL ERROR ===");
     console.error("Error processing contact form:", error);
+    console.error("Stack:", error instanceof Error ? error.stack : 'No stack');
     return new Response(
-      JSON.stringify({
-        error: "Failed to send email",
-        details: error instanceof Error ? error.message : 'Unknown error'
-      }),
+      JSON.stringify({ error: "Failed to send email", details: error instanceof Error ? error.message : 'Unknown error' }),
       {
         status: 500,
         headers: {
