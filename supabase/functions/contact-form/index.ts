@@ -34,16 +34,19 @@ async function sendEmail(settings: EmailSettings, formData: ContactFormData) {
 
   const boundary = `----=_Part${Date.now()}`;
 
+  const subject = `Ny kontaktbesked fra ${formData.name}`;
+  const encodedSubject = `=?UTF-8?B?${btoa(unescape(encodeURIComponent(subject)))}?=`;
+
   const emailBody = [
     `From: "${settings.from_name}" <${settings.from_email}>`,
     `To: ${settings.recipient_email}`,
-    `Subject: Ny kontaktbesked fra ${formData.name}`,
+    `Subject: ${encodedSubject}`,
     `MIME-Version: 1.0`,
     `Content-Type: multipart/alternative; boundary="${boundary}"`,
     ``,
     `--${boundary}`,
     `Content-Type: text/plain; charset=utf-8`,
-    `Content-Transfer-Encoding: 7bit`,
+    `Content-Transfer-Encoding: 8bit`,
     ``,
     `Ny kontaktbesked`,
     ``,
@@ -58,7 +61,7 @@ async function sendEmail(settings: EmailSettings, formData: ContactFormData) {
     ``,
     `--${boundary}`,
     `Content-Type: text/html; charset=utf-8`,
-    `Content-Transfer-Encoding: 7bit`,
+    `Content-Transfer-Encoding: 8bit`,
     ``,
     `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">`,
     `  <h2 style="color: #333;">Ny kontaktbesked</h2>`,
@@ -79,9 +82,9 @@ async function sendEmail(settings: EmailSettings, formData: ContactFormData) {
   ].join('\r\n');
 
   try {
-    console.log('Connecting to SMTP server...');
+    console.log('Connecting to SMTP server with TLS...');
 
-    const conn = await Deno.connect({
+    const conn = await Deno.connectTls({
       hostname: settings.smtp_host,
       port: settings.smtp_port,
     });
@@ -90,14 +93,20 @@ async function sendEmail(settings: EmailSettings, formData: ContactFormData) {
     const textDecoder = new TextDecoder();
 
     async function send(command: string) {
-      console.log('>', command.replace(settings.smtp_password, '***'));
+      const logCommand = command.includes(settings.smtp_password)
+        ? command.replace(settings.smtp_password, '***')
+        : command;
+      console.log('>', logCommand);
       await conn.write(textEncoder.encode(command + '\r\n'));
     }
 
     async function receive(): Promise<string> {
       const buffer = new Uint8Array(4096);
       const n = await conn.read(buffer);
-      const response = textDecoder.decode(buffer.subarray(0, n || 0));
+      if (!n) {
+        throw new Error('Connection closed by server');
+      }
+      const response = textDecoder.decode(buffer.subarray(0, n));
       console.log('<', response.trim());
       return response;
     }
@@ -110,24 +119,7 @@ async function sendEmail(settings: EmailSettings, formData: ContactFormData) {
     await send(`EHLO ${settings.smtp_host}`);
     response = await receive();
 
-    if (settings.smtp_port === 587 && !settings.smtp_secure) {
-      await send('STARTTLS');
-      response = await receive();
-      if (!response.startsWith('220')) {
-        throw new Error('STARTTLS failed: ' + response);
-      }
-
-      console.log('Upgrading to TLS...');
-      await conn.close();
-
-      const tlsConn = await Deno.connectTls({
-        hostname: settings.smtp_host,
-        port: settings.smtp_port,
-      });
-
-      Object.assign(conn, tlsConn);
-
-      await send(`EHLO ${settings.smtp_host}`);
+    while (response.startsWith('250-')) {
       response = await receive();
     }
 
