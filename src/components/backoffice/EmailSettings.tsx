@@ -198,18 +198,19 @@ export default function EmailSettings() {
 
               <div>
                 <label className="block text-sm font-medium text-slate-900 mb-2">
-                  Udgående brugernavn (Email adresse) *
+                  Udgående brugernavn *
                 </label>
                 <input
-                  type="email"
+                  type="text"
                   value={settings.smtp_username}
                   onChange={(e) => setSettings({ ...settings, smtp_username: e.target.value })}
-                  placeholder="din@email.dk"
+                  placeholder="brugernavn eller email"
+                  maxLength={100}
                   className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
                 <p className="text-xs text-slate-600 mt-1">
-                  Din email adresse
+                  SMTP brugernavn (kan være email adresse eller andet format)
                 </p>
               </div>
 
