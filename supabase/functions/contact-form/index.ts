@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -32,133 +33,45 @@ async function sendEmail(settings: EmailSettings, formData: ContactFormData) {
   console.log('From:', settings.from_email);
   console.log('To:', settings.recipient_email);
 
-  const boundary = `----=_Part${Date.now()}`;
-
-  const subject = `Ny kontaktbesked fra ${formData.name}`;
-  const encodedSubject = `=?UTF-8?B?${btoa(unescape(encodeURIComponent(subject)))}?=`;
-
-  const emailBody = [
-    `From: "${settings.from_name}" <${settings.from_email}>`,
-    `To: ${settings.recipient_email}`,
-    `Subject: ${encodedSubject}`,
-    `MIME-Version: 1.0`,
-    `Content-Type: multipart/alternative; boundary="${boundary}"`,
-    ``,
-    `--${boundary}`,
-    `Content-Type: text/plain; charset=utf-8`,
-    `Content-Transfer-Encoding: 8bit`,
-    ``,
-    `Ny kontaktbesked`,
-    ``,
-    `Navn: ${formData.name}`,
-    `Email: ${formData.email}`,
-    ``,
-    `Besked:`,
-    `${formData.message}`,
-    ``,
-    `---`,
-    `Denne besked blev sendt fra kontaktformularen på din hjemmeside.`,
-    ``,
-    `--${boundary}`,
-    `Content-Type: text/html; charset=utf-8`,
-    `Content-Transfer-Encoding: 8bit`,
-    ``,
-    `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">`,
-    `  <h2 style="color: #333;">Ny kontaktbesked</h2>`,
-    `  <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">`,
-    `    <p style="margin: 10px 0;"><strong>Navn:</strong> ${formData.name}</p>`,
-    `    <p style="margin: 10px 0;"><strong>Email:</strong> ${formData.email}</p>`,
-    `  </div>`,
-    `  <div style="background-color: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">`,
-    `    <p style="margin: 0 0 10px 0;"><strong>Besked:</strong></p>`,
-    `    <p style="margin: 0; white-space: pre-wrap;">${formData.message}</p>`,
-    `  </div>`,
-    `  <p style="color: #666; font-size: 12px; margin-top: 20px;">`,
-    `    Denne besked blev sendt fra kontaktformularen på din hjemmeside.`,
-    `  </p>`,
-    `</div>`,
-    ``,
-    `--${boundary}--`,
-  ].join('\r\n');
-
   try {
-    console.log('Connecting to SMTP server with TLS...');
-
-    const conn = await Deno.connectTls({
-      hostname: settings.smtp_host,
-      port: settings.smtp_port,
+    const client = new SMTPClient({
+      connection: {
+        hostname: settings.smtp_host,
+        port: settings.smtp_port,
+        tls: true,
+        auth: {
+          username: settings.smtp_username,
+          password: settings.smtp_password,
+        },
+      },
     });
 
-    const textEncoder = new TextEncoder();
-    const textDecoder = new TextDecoder();
+    console.log('Connecting to SMTP server...');
 
-    async function send(command: string) {
-      const logCommand = command.includes(settings.smtp_password)
-        ? command.replace(settings.smtp_password, '***')
-        : command;
-      console.log('>', logCommand);
-      await conn.write(textEncoder.encode(command + '\r\n'));
-    }
+    await client.send({
+      from: `"${settings.from_name}" <${settings.from_email}>`,
+      to: settings.recipient_email,
+      subject: `Ny kontaktbesked fra ${formData.name}`,
+      content: `Ny kontaktbesked\n\nNavn: ${formData.name}\nEmail: ${formData.email}\n\nBesked:\n${formData.message}\n\n---\nDenne besked blev sendt fra kontaktformularen på din hjemmeside.`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">Ny kontaktbesked</h2>
+          <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 10px 0;"><strong>Navn:</strong> ${formData.name}</p>
+            <p style="margin: 10px 0;"><strong>Email:</strong> ${formData.email}</p>
+          </div>
+          <div style="background-color: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
+            <p style="margin: 0 0 10px 0;"><strong>Besked:</strong></p>
+            <p style="margin: 0; white-space: pre-wrap;">${formData.message}</p>
+          </div>
+          <p style="color: #666; font-size: 12px; margin-top: 20px;">
+            Denne besked blev sendt fra kontaktformularen på din hjemmeside.
+          </p>
+        </div>
+      `,
+    });
 
-    async function receive(): Promise<string> {
-      const buffer = new Uint8Array(4096);
-      const n = await conn.read(buffer);
-      if (!n) {
-        throw new Error('Connection closed by server');
-      }
-      const response = textDecoder.decode(buffer.subarray(0, n));
-      console.log('<', response.trim());
-      return response;
-    }
-
-    let response = await receive();
-    if (!response.startsWith('220')) {
-      throw new Error('SMTP connection failed: ' + response);
-    }
-
-    await send(`EHLO ${settings.smtp_host}`);
-    response = await receive();
-
-    while (response.startsWith('250-')) {
-      response = await receive();
-    }
-
-    const authString = btoa(`\0${settings.smtp_username}\0${settings.smtp_password}`);
-    await send('AUTH PLAIN ' + authString);
-    response = await receive();
-    if (!response.startsWith('235')) {
-      throw new Error('Authentication failed: ' + response);
-    }
-
-    await send(`MAIL FROM:<${settings.from_email}>`);
-    response = await receive();
-    if (!response.startsWith('250')) {
-      throw new Error('MAIL FROM failed: ' + response);
-    }
-
-    await send(`RCPT TO:<${settings.recipient_email}>`);
-    response = await receive();
-    if (!response.startsWith('250')) {
-      throw new Error('RCPT TO failed: ' + response);
-    }
-
-    await send('DATA');
-    response = await receive();
-    if (!response.startsWith('354')) {
-      throw new Error('DATA command failed: ' + response);
-    }
-
-    await send(emailBody);
-    await send('.');
-    response = await receive();
-    if (!response.startsWith('250')) {
-      throw new Error('Message sending failed: ' + response);
-    }
-
-    await send('QUIT');
-    await receive();
-
-    conn.close();
+    await client.close();
 
     console.log('✓ Email sent successfully!');
 
