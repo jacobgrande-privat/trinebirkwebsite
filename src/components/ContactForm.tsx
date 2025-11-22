@@ -166,9 +166,14 @@ const ContactForm: React.FC<ContactFormProps> = ({ recipientEmail }) => {
       </p>
 
       {submitStatus === 'error' && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 flex items-center gap-2" role="alert" aria-live="assertive">
-          <AlertCircle size={20} aria-hidden="true" />
-          <span>Der opstod en fejl ved afsendelse. Prøv igen senere.</span>
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6" role="alert" aria-live="assertive">
+          <div className="flex items-start gap-2">
+            <AlertCircle size={20} className="flex-shrink-0 mt-0.5" aria-hidden="true" />
+            <div className="flex-1">
+              <p className="font-semibold mb-1">Der opstod en fejl ved afsendelse</p>
+              <p className="text-sm">Email indstillingerne er muligvis ikke konfigureret korrekt. Kontakt administratoren.</p>
+            </div>
+          </div>
         </div>
       )}
 
