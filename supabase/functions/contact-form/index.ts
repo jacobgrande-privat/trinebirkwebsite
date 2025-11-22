@@ -192,21 +192,17 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    console.log('Saving message to database...');
-    const { data: messageData, error: dbError } = await supabase
-      .from("contact_messages")
-      .insert({
-        name: formData.name,
-        email: formData.email,
-        message: formData.message,
-      })
-      .select()
+    console.log('Fetching email settings...');
+    const { data: emailSettings, error: settingsError } = await supabase
+      .from("email_settings")
+      .select("*")
+      .eq("id", "00000000-0000-0000-0000-000000000001")
       .single();
 
-    if (dbError) {
-      console.error("Database error:", dbError);
+    if (settingsError) {
+      console.error('Error fetching email settings:', settingsError);
       return new Response(
-        JSON.stringify({ error: "Failed to save message" }),
+        JSON.stringify({ error: "Email settings not configured" }),
         {
           status: 500,
           headers: {
@@ -217,39 +213,41 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    console.log('✓ Message saved to database successfully');
-
-    console.log('Fetching email settings...');
-    const { data: emailSettings, error: settingsError } = await supabase
-      .from("email_settings")
-      .select("*")
-      .eq("id", "00000000-0000-0000-0000-000000000001")
-      .single();
-
-    if (settingsError) {
-      console.error('Error fetching email settings:', settingsError);
-    }
-
-    if (emailSettings && emailSettings.enabled) {
-      console.log('✓ Email is enabled');
-      
-      try {
-        if (!emailSettings.smtp_host || !emailSettings.smtp_username || !emailSettings.smtp_password) {
-          console.error("SMTP settings incomplete!");
-          console.error('Host:', emailSettings.smtp_host);
-          console.error('Username:', emailSettings.smtp_username);
-          console.error('Has password:', !!emailSettings.smtp_password);
-        } else {
-          await sendViaSMTP(emailSettings, formData);
-          console.log('✓✓✓ EMAIL SENT SUCCESSFULLY! ✓✓✓');
+    if (!emailSettings || !emailSettings.enabled) {
+      console.log('Email sending is disabled');
+      return new Response(
+        JSON.stringify({ error: "Email sending is disabled" }),
+        {
+          status: 503,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+          },
         }
-      } catch (emailError) {
-        console.error("=== EMAIL SENDING FAILED ===");
-        console.error("Error:", emailError);
-      }
-    } else {
-      console.log('Email sending is disabled or settings not found');
+      );
     }
+
+    console.log('✓ Email is enabled');
+    
+    if (!emailSettings.smtp_host || !emailSettings.smtp_username || !emailSettings.smtp_password) {
+      console.error("SMTP settings incomplete!");
+      console.error('Host:', emailSettings.smtp_host);
+      console.error('Username:', emailSettings.smtp_username);
+      console.error('Has password:', !!emailSettings.smtp_password);
+      return new Response(
+        JSON.stringify({ error: "SMTP settings incomplete" }),
+        {
+          status: 500,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    }
+    
+    await sendViaSMTP(emailSettings, formData);
+    console.log('✓✓✓ EMAIL SENT SUCCESSFULLY! ✓✓✓');
 
     console.log('=== REQUEST COMPLETED SUCCESSFULLY ===');
     return new Response(
@@ -267,7 +265,7 @@ Deno.serve(async (req: Request) => {
     console.error("Error processing contact form:", error);
     console.error("Stack:", error instanceof Error ? error.stack : 'No stack');
     return new Response(
-      JSON.stringify({ error: "Internal server error", details: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ error: "Failed to send email", details: error instanceof Error ? error.message : 'Unknown error' }),
       {
         status: 500,
         headers: {
