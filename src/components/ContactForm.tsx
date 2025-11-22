@@ -126,7 +126,9 @@ const ContactForm: React.FC<ContactFormProps> = ({ recipientEmail }) => {
         setSubmitStatus('success');
         setFormData({ name: '', email: '', message: '' });
       } else {
-        throw new Error('Failed to send message');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Server error:', errorData);
+        throw new Error(errorData.error || 'Failed to send message');
       }
     } catch (error) {
       console.error('Error sending message:', error);
