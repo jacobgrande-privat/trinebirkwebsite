@@ -83,7 +83,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ recipientEmail }) => {
   };
 
   const handleInputChange = (field: keyof FormData, value: string) => {
-    const allowWhitespace = field === 'message';
+    const allowWhitespace = field === 'message' || field === 'name';
     const sanitizedValue = sanitizeInput(value, allowWhitespace);
     setFormData(prev => ({ ...prev, [field]: sanitizedValue }));
 
@@ -106,7 +106,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ recipientEmail }) => {
     try {
       // Sanitize all form data before submission
       const sanitizedData = {
-        name: sanitizeInput(formData.name, false),
+        name: sanitizeInput(formData.name, true),
         email: sanitizeInput(formData.email, false),
         message: sanitizeInput(formData.message, true)
       };
