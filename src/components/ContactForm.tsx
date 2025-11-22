@@ -28,12 +28,19 @@ const ContactForm: React.FC<ContactFormProps> = ({ recipientEmail }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
-  // Sanitize input by removing HTML tags and special characters
-  const sanitizeInput = (input: string): string => {
-    return input
+  // Sanitize input by removing HTML tags and dangerous script content
+  const sanitizeInput = (input: string, allowWhitespace: boolean = false): string => {
+    let sanitized = input
+      .replace(/<script[^>]*>.*?<\/script>/gi, '') // Remove script tags and content
       .replace(/<[^>]*>/g, '') // Remove HTML tags
-      .replace(/[<>'"&]/g, '') // Remove special characters
-      .trim();
+      .replace(/javascript:/gi, '') // Remove javascript: protocol
+      .replace(/on\w+\s*=/gi, ''); // Remove event handlers like onclick=
+
+    if (!allowWhitespace) {
+      sanitized = sanitized.replace(/[<>'"&]/g, '').trim();
+    }
+
+    return sanitized;
   };
 
   // Email validation regex
@@ -65,14 +72,21 @@ const ContactForm: React.FC<ContactFormProps> = ({ recipientEmail }) => {
       newErrors.message = 'Besked må maksimalt være 500 tegn';
     }
 
+    // Check line count (max 40 lines)
+    const lineCount = formData.message.split('\n').length;
+    if (lineCount > 40) {
+      newErrors.message = 'Besked må maksimalt være 40 linier';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleInputChange = (field: keyof FormData, value: string) => {
-    const sanitizedValue = sanitizeInput(value);
+    const allowWhitespace = field === 'message';
+    const sanitizedValue = sanitizeInput(value, allowWhitespace);
     setFormData(prev => ({ ...prev, [field]: sanitizedValue }));
-    
+
     // Clear error for this field when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
@@ -92,9 +106,9 @@ const ContactForm: React.FC<ContactFormProps> = ({ recipientEmail }) => {
     try {
       // Sanitize all form data before submission
       const sanitizedData = {
-        name: sanitizeInput(formData.name),
-        email: sanitizeInput(formData.email),
-        message: sanitizeInput(formData.message)
+        name: sanitizeInput(formData.name, false),
+        email: sanitizeInput(formData.email, false),
+        message: sanitizeInput(formData.message, true)
       };
 
       // In a real implementation, this would send to your backend API
@@ -219,7 +233,9 @@ const ContactForm: React.FC<ContactFormProps> = ({ recipientEmail }) => {
           {errors.message && (
             <p id="message-error" className="text-red-500 text-sm mt-1" role="alert">{errors.message}</p>
           )}
-          <p id="message-counter" className="text-xs text-gray-500 mt-1" aria-live="polite">{formData.message.length}/500 tegn</p>
+          <p id="message-counter" className="text-xs text-gray-500 mt-1" aria-live="polite">
+            {formData.message.length}/500 tegn · {formData.message.split('\n').length}/40 linier
+          </p>
         </div>
 
         <button
