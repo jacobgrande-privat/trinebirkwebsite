@@ -111,11 +111,12 @@ const ContactForm: React.FC<ContactFormProps> = ({ recipientEmail }) => {
         message: sanitizeInput(formData.message, true)
       };
 
-      // In a real implementation, this would send to your backend API
-      // The backend would handle SMTP configuration and sending
-      const response = await fetch('/api/contact', {
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/contact-form`;
+
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(sanitizedData)

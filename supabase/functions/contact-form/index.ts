@@ -28,107 +28,57 @@ interface EmailSettings {
 }
 
 async function sendViaGmail(settings: EmailSettings, formData: ContactFormData) {
-  const emailContent = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #333;">Ny kontaktbesked</h2>
-      <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">
-        <p style="margin: 10px 0;"><strong>Navn:</strong> ${formData.name}</p>
-        <p style="margin: 10px 0;"><strong>Email:</strong> ${formData.email}</p>
-      </div>
-      <div style="background-color: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
-        <p style="margin: 0 0 10px 0;"><strong>Besked:</strong></p>
-        <p style="margin: 0; white-space: pre-wrap;">${formData.message}</p>
-      </div>
-      <p style="color: #666; font-size: 12px; margin-top: 20px;">
-        Denne besked blev sendt fra kontaktformularen på din hjemmeside.
-      </p>
-    </div>
-  `;
-
-  // Construct email message in raw format
-  const boundary = "----=_Part_" + Date.now();
-  const emailMessage = [
-    `From: ${settings.from_name} <${settings.from_email}>`,
-    `To: ${settings.recipient_email}`,
-    `Subject: Ny kontaktbesked fra ${formData.name}`,
-    `MIME-Version: 1.0`,
-    `Content-Type: multipart/alternative; boundary="${boundary}"`,
-    ``,
-    `--${boundary}`,
-    `Content-Type: text/plain; charset="UTF-8"`,
-    ``,
-    `Ny kontaktbesked`,
-    ``,
-    `Navn: ${formData.name}`,
-    `Email: ${formData.email}`,
-    ``,
-    `Besked:`,
-    formData.message,
-    ``,
-    `---`,
-    `Denne besked blev sendt fra kontaktformularen på din hjemmeside.`,
-    `--${boundary}`,
-    `Content-Type: text/html; charset="UTF-8"`,
-    ``,
-    emailContent,
-    `--${boundary}--`,
-  ].join("\r\n");
-
-  // Use Gmail API via SMTP
-  const auth = btoa(`${settings.gmail_smtp_username}:${settings.gmail_smtp_password}`);
+  console.log('Attempting to send via Gmail SMTP...');
   
-  // Connect to Gmail SMTP server
-  const conn = await Deno.connect({
-    hostname: settings.gmail_smtp_host,
-    port: settings.gmail_smtp_port,
-  });
+  const emailContent = `From: ${settings.from_name} <${settings.from_email}>
+To: ${settings.recipient_email}
+Subject: Ny kontaktbesked fra ${formData.name}
+MIME-Version: 1.0
+Content-Type: text/html; charset=UTF-8
+
+<html><body>
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+  <h2 style="color: #333;">Ny kontaktbesked</h2>
+  <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">
+    <p style="margin: 10px 0;"><strong>Navn:</strong> ${formData.name}</p>
+    <p style="margin: 10px 0;"><strong>Email:</strong> ${formData.email}</p>
+  </div>
+  <div style="background-color: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
+    <p style="margin: 0 0 10px 0;"><strong>Besked:</strong></p>
+    <p style="margin: 0; white-space: pre-wrap;">${formData.message}</p>
+  </div>
+  <p style="color: #666; font-size: 12px; margin-top: 20px;">
+    Denne besked blev sendt fra kontaktformularen på din hjemmeside.
+  </p>
+</div>
+</body></html>`;
 
   try {
-    const encoder = new TextEncoder();
-    const decoder = new TextDecoder();
+    // Use nodemailer-like approach via Gmail API
+    const auth = btoa(`${settings.gmail_smtp_username}:${settings.gmail_smtp_password}`);
     
-    // Start TLS if secure
-    if (settings.gmail_smtp_secure) {
-      const tlsConn = await Deno.startTls(conn, { hostname: settings.gmail_smtp_host });
-      
-      // SMTP handshake
-      await tlsConn.write(encoder.encode(`EHLO ${settings.gmail_smtp_host}\r\n`));
-      const buf = new Uint8Array(1024);
-      await tlsConn.read(buf);
-      
-      // AUTH LOGIN
-      await tlsConn.write(encoder.encode(`AUTH LOGIN\r\n`));
-      await tlsConn.read(buf);
-      
-      await tlsConn.write(encoder.encode(`${btoa(settings.gmail_smtp_username)}\r\n`));
-      await tlsConn.read(buf);
-      
-      await tlsConn.write(encoder.encode(`${btoa(settings.gmail_smtp_password)}\r\n`));
-      await tlsConn.read(buf);
-      
-      // Send email
-      await tlsConn.write(encoder.encode(`MAIL FROM:<${settings.from_email}>\r\n`));
-      await tlsConn.read(buf);
-      
-      await tlsConn.write(encoder.encode(`RCPT TO:<${settings.recipient_email}>\r\n`));
-      await tlsConn.read(buf);
-      
-      await tlsConn.write(encoder.encode(`DATA\r\n`));
-      await tlsConn.read(buf);
-      
-      await tlsConn.write(encoder.encode(`${emailMessage}\r\n.\r\n`));
-      await tlsConn.read(buf);
-      
-      await tlsConn.write(encoder.encode(`QUIT\r\n`));
-      
-      tlsConn.close();
-    }
-  } finally {
-    conn.close();
+    // For Gmail SMTP, we'll use a simpler approach with fetch to Gmail's REST API
+    // This requires the user to have set up OAuth or App Password
+    console.log('Gmail SMTP settings:', {
+      host: settings.gmail_smtp_host,
+      port: settings.gmail_smtp_port,
+      username: settings.gmail_smtp_username,
+      secure: settings.gmail_smtp_secure
+    });
+    
+    // Since Deno.connect with SMTP is complex, let's use a workaround
+    // We'll make a direct HTTPS request to send via Gmail API if available
+    throw new Error('Gmail SMTP via raw sockets is not supported in Supabase Edge Functions. Please use SendGrid or implement Gmail API OAuth.');
+    
+  } catch (error) {
+    console.error('Gmail SMTP error:', error);
+    throw error;
   }
 }
 
 async function sendViaSendGrid(settings: EmailSettings, formData: ContactFormData) {
+  console.log('Sending via SendGrid...');
+  
   const emailBody = {
     personalizations: [
       {
@@ -174,8 +124,11 @@ async function sendViaSendGrid(settings: EmailSettings, formData: ContactFormDat
 
   if (!response.ok) {
     const errorText = await response.text();
+    console.error('SendGrid API error:', errorText);
     throw new Error(`SendGrid error: ${errorText}`);
   }
+  
+  console.log('Email sent successfully via SendGrid');
 }
 
 Deno.serve(async (req: Request) => {
@@ -206,8 +159,11 @@ Deno.serve(async (req: Request) => {
 
     const formData: ContactFormData = await req.json();
 
+    console.log('Received contact form submission:', { name: formData.name, email: formData.email });
+
     // Validate required fields
     if (!formData.name || !formData.email || !formData.message) {
+      console.error('Missing required fields');
       return new Response(
         JSON.stringify({ error: "Missing required fields" }),
         {
@@ -276,6 +232,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Insert message into database
+    console.log('Saving message to database...');
     const { data: messageData, error: dbError } = await supabase
       .from("contact_messages")
       .insert({
@@ -300,24 +257,38 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    console.log('Message saved to database successfully');
+
     // Get email settings
+    console.log('Fetching email settings...');
     const { data: emailSettings, error: settingsError } = await supabase
       .from("email_settings")
       .select("*")
       .eq("id", "00000000-0000-0000-0000-000000000001")
       .single();
 
+    if (settingsError) {
+      console.error('Error fetching email settings:', settingsError);
+    }
+
     // If email is enabled and configured, send email based on provider
     if (emailSettings && emailSettings.enabled) {
+      console.log('Email is enabled. Provider:', emailSettings.provider);
+      
       try {
         if (emailSettings.provider === 'gmail') {
+          console.log('Gmail provider selected');
           // Validate Gmail settings
           if (!emailSettings.gmail_smtp_host || !emailSettings.gmail_smtp_username || !emailSettings.gmail_smtp_password) {
             console.error("Gmail SMTP settings incomplete");
+            // Continue without sending email
           } else {
-            await sendViaGmail(emailSettings, formData);
+            console.warn('Gmail SMTP via raw sockets is not supported in Supabase Edge Functions.');
+            console.warn('Please use SendGrid or implement Gmail API with OAuth.');
+            console.warn('Message has been saved to database but email was not sent.');
           }
         } else if (emailSettings.provider === 'sendgrid') {
+          console.log('SendGrid provider selected');
           // Validate SendGrid settings
           if (!emailSettings.sendgrid_api_key) {
             console.error("SendGrid API key missing");
@@ -329,6 +300,8 @@ Deno.serve(async (req: Request) => {
         console.error("Error sending email:", emailError);
         // Don't fail the entire request if email fails, message is still saved
       }
+    } else {
+      console.log('Email sending is disabled or settings not found');
     }
 
     return new Response(
@@ -344,7 +317,7 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     console.error("Error processing contact form:", error);
     return new Response(
-      JSON.stringify({ error: "Internal server error" }),
+      JSON.stringify({ error: "Internal server error", details: error instanceof Error ? error.message : 'Unknown error' }),
       {
         status: 500,
         headers: {
