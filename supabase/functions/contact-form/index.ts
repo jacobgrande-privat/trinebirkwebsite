@@ -25,70 +25,154 @@ interface EmailSettings {
   enabled: boolean;
 }
 
-async function sendViaSMTP(settings: EmailSettings, formData: ContactFormData) {
-  console.log('Attempting to send via SMTP using nodemailer...');
-  console.log('SMTP settings:', {
-    host: settings.smtp_host,
-    port: settings.smtp_port,
-    username: settings.smtp_username,
-    secure: settings.smtp_secure,
-    hasPassword: !!settings.smtp_password
-  });
-  
+async function sendEmail(settings: EmailSettings, formData: ContactFormData) {
+  console.log('Preparing to send email via SMTP...');
+  console.log('SMTP Host:', settings.smtp_host);
+  console.log('SMTP Port:', settings.smtp_port);
+  console.log('From:', settings.from_email);
+  console.log('To:', settings.recipient_email);
+
+  const boundary = `----=_Part${Date.now()}`;
+
+  const emailBody = [
+    `From: "${settings.from_name}" <${settings.from_email}>`,
+    `To: ${settings.recipient_email}`,
+    `Subject: Ny kontaktbesked fra ${formData.name}`,
+    `MIME-Version: 1.0`,
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
+    ``,
+    `--${boundary}`,
+    `Content-Type: text/plain; charset=utf-8`,
+    `Content-Transfer-Encoding: 7bit`,
+    ``,
+    `Ny kontaktbesked`,
+    ``,
+    `Navn: ${formData.name}`,
+    `Email: ${formData.email}`,
+    ``,
+    `Besked:`,
+    `${formData.message}`,
+    ``,
+    `---`,
+    `Denne besked blev sendt fra kontaktformularen på din hjemmeside.`,
+    ``,
+    `--${boundary}`,
+    `Content-Type: text/html; charset=utf-8`,
+    `Content-Transfer-Encoding: 7bit`,
+    ``,
+    `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">`,
+    `  <h2 style="color: #333;">Ny kontaktbesked</h2>`,
+    `  <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">`,
+    `    <p style="margin: 10px 0;"><strong>Navn:</strong> ${formData.name}</p>`,
+    `    <p style="margin: 10px 0;"><strong>Email:</strong> ${formData.email}</p>`,
+    `  </div>`,
+    `  <div style="background-color: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">`,
+    `    <p style="margin: 0 0 10px 0;"><strong>Besked:</strong></p>`,
+    `    <p style="margin: 0; white-space: pre-wrap;">${formData.message}</p>`,
+    `  </div>`,
+    `  <p style="color: #666; font-size: 12px; margin-top: 20px;">`,
+    `    Denne besked blev sendt fra kontaktformularen på din hjemmeside.`,
+    `  </p>`,
+    `</div>`,
+    ``,
+    `--${boundary}--`,
+  ].join('\r\n');
+
   try {
-    const nodemailer = await import('npm:nodemailer@6.9.0');
-    console.log('Nodemailer imported successfully');
-    
-    const transporter = nodemailer.default.createTransport({
-      host: settings.smtp_host,
+    console.log('Connecting to SMTP server...');
+
+    const conn = await Deno.connect({
+      hostname: settings.smtp_host,
       port: settings.smtp_port,
-      secure: settings.smtp_secure,
-      auth: {
-        user: settings.smtp_username,
-        pass: settings.smtp_password,
-      },
-      debug: true,
-      logger: true,
     });
 
-    console.log('Transporter created, verifying connection...');
-    
-    await transporter.verify();
-    console.log('SMTP connection verified successfully!');
+    const textEncoder = new TextEncoder();
+    const textDecoder = new TextDecoder();
 
-    console.log('Sending email...');
-    const info = await transporter.sendMail({
-      from: `"${settings.from_name}" <${settings.from_email}>`,
-      to: settings.recipient_email,
-      subject: `Ny kontaktbesked fra ${formData.name}`,
-      text: `Ny kontaktbesked\n\nNavn: ${formData.name}\nEmail: ${formData.email}\n\nBesked:\n${formData.message}\n\n---\nDenne besked blev sendt fra kontaktformularen på din hjemmeside.`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #333;">Ny kontaktbesked</h2>
-          <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">
-            <p style="margin: 10px 0;"><strong>Navn:</strong> ${formData.name}</p>
-            <p style="margin: 10px 0;"><strong>Email:</strong> ${formData.email}</p>
-          </div>
-          <div style="background-color: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
-            <p style="margin: 0 0 10px 0;"><strong>Besked:</strong></p>
-            <p style="margin: 0; white-space: pre-wrap;">${formData.message}</p>
-          </div>
-          <p style="color: #666; font-size: 12px; margin-top: 20px;">
-            Denne besked blev sendt fra kontaktformularen på din hjemmeside.
-          </p>
-        </div>
-      `,
-    });
+    async function send(command: string) {
+      console.log('>', command.replace(settings.smtp_password, '***'));
+      await conn.write(textEncoder.encode(command + '\r\n'));
+    }
 
-    console.log('Email sent successfully!');
-    console.log('Message ID:', info.messageId);
-    console.log('Response:', info.response);
-    
+    async function receive(): Promise<string> {
+      const buffer = new Uint8Array(4096);
+      const n = await conn.read(buffer);
+      const response = textDecoder.decode(buffer.subarray(0, n || 0));
+      console.log('<', response.trim());
+      return response;
+    }
+
+    let response = await receive();
+    if (!response.startsWith('220')) {
+      throw new Error('SMTP connection failed: ' + response);
+    }
+
+    await send(`EHLO ${settings.smtp_host}`);
+    response = await receive();
+
+    if (settings.smtp_port === 587 && !settings.smtp_secure) {
+      await send('STARTTLS');
+      response = await receive();
+      if (!response.startsWith('220')) {
+        throw new Error('STARTTLS failed: ' + response);
+      }
+
+      console.log('Upgrading to TLS...');
+      await conn.close();
+
+      const tlsConn = await Deno.connectTls({
+        hostname: settings.smtp_host,
+        port: settings.smtp_port,
+      });
+
+      Object.assign(conn, tlsConn);
+
+      await send(`EHLO ${settings.smtp_host}`);
+      response = await receive();
+    }
+
+    const authString = btoa(`\0${settings.smtp_username}\0${settings.smtp_password}`);
+    await send('AUTH PLAIN ' + authString);
+    response = await receive();
+    if (!response.startsWith('235')) {
+      throw new Error('Authentication failed: ' + response);
+    }
+
+    await send(`MAIL FROM:<${settings.from_email}>`);
+    response = await receive();
+    if (!response.startsWith('250')) {
+      throw new Error('MAIL FROM failed: ' + response);
+    }
+
+    await send(`RCPT TO:<${settings.recipient_email}>`);
+    response = await receive();
+    if (!response.startsWith('250')) {
+      throw new Error('RCPT TO failed: ' + response);
+    }
+
+    await send('DATA');
+    response = await receive();
+    if (!response.startsWith('354')) {
+      throw new Error('DATA command failed: ' + response);
+    }
+
+    await send(emailBody);
+    await send('.');
+    response = await receive();
+    if (!response.startsWith('250')) {
+      throw new Error('Message sending failed: ' + response);
+    }
+
+    await send('QUIT');
+    await receive();
+
+    conn.close();
+
+    console.log('✓ Email sent successfully!');
+
   } catch (error) {
     console.error('=== SMTP ERROR ===');
-    console.error('Error type:', error?.constructor?.name);
-    console.error('Error message:', error instanceof Error ? error.message : String(error));
-    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
+    console.error('Error:', error);
     throw error;
   }
 }
@@ -228,12 +312,9 @@ Deno.serve(async (req: Request) => {
     }
 
     console.log('✓ Email is enabled');
-    
+
     if (!emailSettings.smtp_host || !emailSettings.smtp_username || !emailSettings.smtp_password) {
       console.error("SMTP settings incomplete!");
-      console.error('Host:', emailSettings.smtp_host);
-      console.error('Username:', emailSettings.smtp_username);
-      console.error('Has password:', !!emailSettings.smtp_password);
       return new Response(
         JSON.stringify({ error: "SMTP settings incomplete" }),
         {
@@ -245,11 +326,10 @@ Deno.serve(async (req: Request) => {
         }
       );
     }
-    
-    await sendViaSMTP(emailSettings, formData);
+
+    await sendEmail(emailSettings, formData);
     console.log('✓✓✓ EMAIL SENT SUCCESSFULLY! ✓✓✓');
 
-    console.log('=== REQUEST COMPLETED SUCCESSFULLY ===');
     return new Response(
       JSON.stringify({ success: true, message: "Message sent successfully" }),
       {
@@ -263,9 +343,11 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     console.error("=== FATAL ERROR ===");
     console.error("Error processing contact form:", error);
-    console.error("Stack:", error instanceof Error ? error.stack : 'No stack');
     return new Response(
-      JSON.stringify({ error: "Failed to send email", details: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({
+        error: "Failed to send email",
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }),
       {
         status: 500,
         headers: {
