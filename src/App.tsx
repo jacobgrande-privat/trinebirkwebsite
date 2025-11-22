@@ -46,7 +46,7 @@ function AppContent() {
       return;
     }
 
-    const validSections = ['om', 'vaerdier', 'maal', 'kontakt'];
+    const validSections = ['om', 'maal', 'kontakt'];
     if (validSections.includes(slug)) {
       setShow404(false);
       setActiveSection(slug);
@@ -251,48 +251,6 @@ function AppContent() {
           </div>
         </section>
 
-        {/* Values Section */}
-        <section id="vaerdier" className="py-20 bg-gray-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">{content.values.title}</h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                {content.values.subtitle}
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {content.values.items.map((item, index) => {
-                const iconMap: { [key: string]: any } = {
-                  heart: Heart,
-                  users: Users,
-                  shield: Shield,
-                  briefcase: Briefcase
-                };
-                const Icon = iconMap[item.icon] || Heart;
-                const colorMap: { [key: string]: string } = {
-                  heart: 'red',
-                  users: 'blue',
-                  shield: 'green',
-                  briefcase: 'purple'
-                };
-                const color = colorMap[item.icon] || 'red';
-
-                return (
-                  <div key={index} className="bg-white p-8 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-                    <div className={`w-16 h-16 bg-${color}-100 rounded-full flex items-center justify-center mb-6`} aria-hidden="true">
-                      <Icon className={`text-${color}-600`} size={32} />
-                    </div>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-4">{item.title}</h3>
-                    <p className="text-gray-600 leading-relaxed">
-                      {item.description}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
 
         {/* Goals Section */}
         <section id="maal" className="py-20 bg-white">
@@ -504,12 +462,6 @@ function AppContent() {
                 Om Trine
               </button>
               <button 
-                onClick={() => scrollToSection('vaerdier')} 
-                className={`transition-colors font-medium ${activeSection === 'vaerdier' ? 'text-red-600' : 'text-gray-700 hover:text-red-600'}`}
-              >
-                Værdier
-              </button>
-              <button 
                 onClick={() => scrollToSection('maal')} 
                 className={`transition-colors font-medium ${activeSection === 'maal' ? 'text-red-600' : 'text-gray-700 hover:text-red-600'}`}
               >
@@ -561,12 +513,6 @@ function AppContent() {
                 className="block w-full text-left px-4 py-2 text-gray-700 hover:text-red-600 hover:bg-gray-50 transition-colors font-medium"
               >
                 Om Trine
-              </button>
-              <button 
-                onClick={() => scrollToSection('vaerdier')} 
-                className="block w-full text-left px-4 py-2 text-gray-700 hover:text-red-600 hover:bg-gray-50 transition-colors font-medium"
-              >
-                Værdier
               </button>
               <button 
                 onClick={() => scrollToSection('maal')} 
