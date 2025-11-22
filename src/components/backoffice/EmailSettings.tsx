@@ -179,23 +179,22 @@ export default function EmailSettings() {
                     SendGrid
                   </span>
                 </label>
-                <label className={`flex-1 flex items-center justify-center gap-3 p-4 border-2 rounded-lg cursor-not-allowed transition-all opacity-50 ${
+                <label className={`flex-1 flex items-center justify-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
                   settings.provider === 'gmail'
-                    ? 'border-red-600 bg-red-50'
-                    : 'border-slate-300 bg-white'
+                    ? 'border-blue-600 bg-blue-50'
+                    : 'border-slate-300 bg-white hover:border-slate-400'
                 }`}>
                   <input
                     type="radio"
                     value="gmail"
                     checked={settings.provider === 'gmail'}
                     onChange={(e) => setSettings({ ...settings, provider: e.target.value as 'gmail' })}
-                    className="w-4 h-4 text-red-600"
-                    disabled
+                    className="w-4 h-4 text-blue-600"
                   />
                   <span className={`font-medium ${
-                    settings.provider === 'gmail' ? 'text-red-900' : 'text-slate-700'
+                    settings.provider === 'gmail' ? 'text-blue-900' : 'text-slate-700'
                   }`}>
-                    Gmail SMTP (Ikke understøttet)
+                    Gmail SMTP
                   </span>
                 </label>
               </div>
@@ -244,20 +243,16 @@ export default function EmailSettings() {
             )}
 
             {settings.provider === 'gmail' && (
-              <div className="space-y-4 p-4 border-2 border-red-200 rounded-lg bg-red-50">
-                <div className="flex items-start gap-2 pb-3 border-b border-red-200">
-                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm text-red-800">
-                    <p className="font-medium mb-2">ADVARSEL: Gmail SMTP er ikke understøttet</p>
-                    <p className="mb-2 text-red-700">
-                      Gmail SMTP via raw sockets er ikke understøttet i Supabase Edge Functions på grund af tekniske begrænsninger.
-                    </p>
-                    <p className="font-medium text-red-900">
-                      Brug venligst SendGrid i stedet, eller implementer Gmail API med OAuth (avanceret).
-                    </p>
-                    <p className="mt-2 text-red-700">
-                      Beskeder vil stadig blive gemt i databasen, men emails sendes ikke.
-                    </p>
+              <div className="space-y-4 p-4 border-2 border-green-200 rounded-lg bg-green-50">
+                <div className="flex items-start gap-2 pb-3 border-b border-green-200">
+                  <AlertCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-green-800">
+                    <p className="font-medium mb-1">Gmail SMTP Opsætning</p>
+                    <ol className="list-decimal list-inside space-y-1 text-green-700">
+                      <li>Aktiver 2-faktor autentifikation på din Gmail konto</li>
+                      <li>Opret en App Password på <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" className="underline">myaccount.google.com/apppasswords</a></li>
+                      <li>Brug App Password som adgangskode nedenfor</li>
+                    </ol>
                   </div>
                 </div>
 

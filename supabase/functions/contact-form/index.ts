@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import nodemailer from "npm:nodemailer@6.9.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,47 +29,49 @@ interface EmailSettings {
 }
 
 async function sendViaGmail(settings: EmailSettings, formData: ContactFormData) {
-  console.log('Attempting to send via Gmail SMTP...');
+  console.log('Attempting to send via Gmail SMTP using nodemailer...');
   
-  const emailContent = `From: ${settings.from_name} <${settings.from_email}>
-To: ${settings.recipient_email}
-Subject: Ny kontaktbesked fra ${formData.name}
-MIME-Version: 1.0
-Content-Type: text/html; charset=UTF-8
-
-<html><body>
-<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-  <h2 style="color: #333;">Ny kontaktbesked</h2>
-  <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">
-    <p style="margin: 10px 0;"><strong>Navn:</strong> ${formData.name}</p>
-    <p style="margin: 10px 0;"><strong>Email:</strong> ${formData.email}</p>
-  </div>
-  <div style="background-color: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
-    <p style="margin: 0 0 10px 0;"><strong>Besked:</strong></p>
-    <p style="margin: 0; white-space: pre-wrap;">${formData.message}</p>
-  </div>
-  <p style="color: #666; font-size: 12px; margin-top: 20px;">
-    Denne besked blev sendt fra kontaktformularen på din hjemmeside.
-  </p>
-</div>
-</body></html>`;
-
   try {
-    // Use nodemailer-like approach via Gmail API
-    const auth = btoa(`${settings.gmail_smtp_username}:${settings.gmail_smtp_password}`);
-    
-    // For Gmail SMTP, we'll use a simpler approach with fetch to Gmail's REST API
-    // This requires the user to have set up OAuth or App Password
-    console.log('Gmail SMTP settings:', {
+    // Create transporter
+    const transporter = nodemailer.createTransport({
       host: settings.gmail_smtp_host,
       port: settings.gmail_smtp_port,
-      username: settings.gmail_smtp_username,
-      secure: settings.gmail_smtp_secure
+      secure: settings.gmail_smtp_secure,
+      auth: {
+        user: settings.gmail_smtp_username,
+        pass: settings.gmail_smtp_password,
+      },
     });
-    
-    // Since Deno.connect with SMTP is complex, let's use a workaround
-    // We'll make a direct HTTPS request to send via Gmail API if available
-    throw new Error('Gmail SMTP via raw sockets is not supported in Supabase Edge Functions. Please use SendGrid or implement Gmail API OAuth.');
+
+    // Verify connection
+    await transporter.verify();
+    console.log('SMTP connection verified');
+
+    // Send email
+    const info = await transporter.sendMail({
+      from: `"${settings.from_name}" <${settings.from_email}>`,
+      to: settings.recipient_email,
+      subject: `Ny kontaktbesked fra ${formData.name}`,
+      text: `Ny kontaktbesked\n\nNavn: ${formData.name}\nEmail: ${formData.email}\n\nBesked:\n${formData.message}\n\n---\nDenne besked blev sendt fra kontaktformularen på din hjemmeside.`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">Ny kontaktbesked</h2>
+          <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 10px 0;"><strong>Navn:</strong> ${formData.name}</p>
+            <p style="margin: 10px 0;"><strong>Email:</strong> ${formData.email}</p>
+          </div>
+          <div style="background-color: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
+            <p style="margin: 0 0 10px 0;"><strong>Besked:</strong></p>
+            <p style="margin: 0; white-space: pre-wrap;">${formData.message}</p>
+          </div>
+          <p style="color: #666; font-size: 12px; margin-top: 20px;">
+            Denne besked blev sendt fra kontaktformularen på din hjemmeside.
+          </p>
+        </div>
+      `,
+    });
+
+    console.log('Email sent successfully via Gmail:', info.messageId);
     
   } catch (error) {
     console.error('Gmail SMTP error:', error);
@@ -281,11 +284,8 @@ Deno.serve(async (req: Request) => {
           // Validate Gmail settings
           if (!emailSettings.gmail_smtp_host || !emailSettings.gmail_smtp_username || !emailSettings.gmail_smtp_password) {
             console.error("Gmail SMTP settings incomplete");
-            // Continue without sending email
           } else {
-            console.warn('Gmail SMTP via raw sockets is not supported in Supabase Edge Functions.');
-            console.warn('Please use SendGrid or implement Gmail API with OAuth.');
-            console.warn('Message has been saved to database but email was not sent.');
+            await sendViaGmail(emailSettings, formData);
           }
         } else if (emailSettings.provider === 'sendgrid') {
           console.log('SendGrid provider selected');
