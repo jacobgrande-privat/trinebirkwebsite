@@ -1,6 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import nodemailer from "npm:nodemailer@6.9.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,11 +28,22 @@ interface EmailSettings {
 }
 
 async function sendViaGmail(settings: EmailSettings, formData: ContactFormData) {
-  console.log('Attempting to send via Gmail SMTP using nodemailer...');
+  console.log('Attempting to send via Gmail SMTP...');
+  console.log('Gmail settings:', {
+    host: settings.gmail_smtp_host,
+    port: settings.gmail_smtp_port,
+    username: settings.gmail_smtp_username,
+    secure: settings.gmail_smtp_secure,
+    hasPassword: !!settings.gmail_smtp_password
+  });
   
   try {
+    // Try dynamic import
+    const nodemailer = await import('npm:nodemailer@6.9.0');
+    console.log('Nodemailer imported successfully');
+    
     // Create transporter
-    const transporter = nodemailer.createTransport({
+    const transporter = nodemailer.default.createTransport({
       host: settings.gmail_smtp_host,
       port: settings.gmail_smtp_port,
       secure: settings.gmail_smtp_secure,
@@ -41,13 +51,18 @@ async function sendViaGmail(settings: EmailSettings, formData: ContactFormData) 
         user: settings.gmail_smtp_username,
         pass: settings.gmail_smtp_password,
       },
+      debug: true,
+      logger: true,
     });
 
+    console.log('Transporter created, verifying connection...');
+    
     // Verify connection
     await transporter.verify();
-    console.log('SMTP connection verified');
+    console.log('SMTP connection verified successfully!');
 
     // Send email
+    console.log('Sending email...');
     const info = await transporter.sendMail({
       from: `"${settings.from_name}" <${settings.from_email}>`,
       to: settings.recipient_email,
@@ -71,10 +86,16 @@ async function sendViaGmail(settings: EmailSettings, formData: ContactFormData) 
       `,
     });
 
-    console.log('Email sent successfully via Gmail:', info.messageId);
+    console.log('Email sent successfully via Gmail!');
+    console.log('Message ID:', info.messageId);
+    console.log('Response:', info.response);
     
   } catch (error) {
-    console.error('Gmail SMTP error:', error);
+    console.error('=== Gmail SMTP ERROR ===');
+    console.error('Error type:', error?.constructor?.name);
+    console.error('Error message:', error instanceof Error ? error.message : String(error));
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
+    console.error('Full error:', JSON.stringify(error, null, 2));
     throw error;
   }
 }
@@ -162,7 +183,9 @@ Deno.serve(async (req: Request) => {
 
     const formData: ContactFormData = await req.json();
 
-    console.log('Received contact form submission:', { name: formData.name, email: formData.email });
+    console.log('=== NEW CONTACT FORM SUBMISSION ===');
+    console.log('Name:', formData.name);
+    console.log('Email:', formData.email);
 
     // Validate required fields
     if (!formData.name || !formData.email || !formData.message) {
@@ -260,7 +283,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    console.log('Message saved to database successfully');
+    console.log('✓ Message saved to database successfully');
 
     // Get email settings
     console.log('Fetching email settings...');
@@ -276,34 +299,42 @@ Deno.serve(async (req: Request) => {
 
     // If email is enabled and configured, send email based on provider
     if (emailSettings && emailSettings.enabled) {
-      console.log('Email is enabled. Provider:', emailSettings.provider);
+      console.log('✓ Email is enabled');
+      console.log('Provider:', emailSettings.provider);
       
       try {
         if (emailSettings.provider === 'gmail') {
-          console.log('Gmail provider selected');
+          console.log('Using Gmail provider...');
           // Validate Gmail settings
           if (!emailSettings.gmail_smtp_host || !emailSettings.gmail_smtp_username || !emailSettings.gmail_smtp_password) {
-            console.error("Gmail SMTP settings incomplete");
+            console.error("Gmail SMTP settings incomplete!");
+            console.error('Host:', emailSettings.gmail_smtp_host);
+            console.error('Username:', emailSettings.gmail_smtp_username);
+            console.error('Has password:', !!emailSettings.gmail_smtp_password);
           } else {
             await sendViaGmail(emailSettings, formData);
+            console.log('✓✓✓ EMAIL SENT SUCCESSFULLY! ✓✓✓');
           }
         } else if (emailSettings.provider === 'sendgrid') {
-          console.log('SendGrid provider selected');
+          console.log('Using SendGrid provider...');
           // Validate SendGrid settings
           if (!emailSettings.sendgrid_api_key) {
             console.error("SendGrid API key missing");
           } else {
             await sendViaSendGrid(emailSettings, formData);
+            console.log('✓✓✓ EMAIL SENT SUCCESSFULLY! ✓✓✓');
           }
         }
       } catch (emailError) {
-        console.error("Error sending email:", emailError);
+        console.error("=== EMAIL SENDING FAILED ===");
+        console.error("Error:", emailError);
         // Don't fail the entire request if email fails, message is still saved
       }
     } else {
       console.log('Email sending is disabled or settings not found');
     }
 
+    console.log('=== REQUEST COMPLETED SUCCESSFULLY ===');
     return new Response(
       JSON.stringify({ success: true, message: "Message sent successfully" }),
       {
@@ -315,7 +346,9 @@ Deno.serve(async (req: Request) => {
       }
     );
   } catch (error) {
+    console.error("=== FATAL ERROR ===");
     console.error("Error processing contact form:", error);
+    console.error("Stack:", error instanceof Error ? error.stack : 'No stack');
     return new Response(
       JSON.stringify({ error: "Internal server error", details: error instanceof Error ? error.message : 'Unknown error' }),
       {
