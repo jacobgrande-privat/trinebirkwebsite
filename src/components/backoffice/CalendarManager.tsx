@@ -109,22 +109,22 @@ const CalendarManager: React.FC = () => {
 
       <div className="bg-white rounded-lg shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+          <table className="w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Arrangement
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Dato & Tid
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Lokation
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Type
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Handlinger
                 </th>
               </tr>
@@ -134,34 +134,34 @@ const CalendarManager: React.FC = () => {
                 const typeInfo = getEventTypeInfo(event.type);
                 return (
                   <tr key={event.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{event.title}</div>
-                        <div className="text-sm text-gray-500">{event.description}</div>
+                    <td className="px-4 py-4">
+                      <div className="max-w-xs">
+                        <div className="text-sm font-medium text-gray-900 truncate">{event.title}</div>
+                        <div className="text-sm text-gray-500 line-clamp-2">{event.description}</div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2 text-sm text-gray-900">
-                        <Calendar size={16} />
-                        {event.date.toLocaleDateString('da-DK')}
+                        <Calendar size={16} className="flex-shrink-0" />
+                        <span>{event.date.toLocaleDateString('da-DK')}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-500">
-                        <Clock size={16} />
-                        {event.time}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2 text-sm text-gray-900">
-                        <MapPin size={16} />
-                        {event.location}
+                      <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
+                        <Clock size={16} className="flex-shrink-0" />
+                        <span>{event.time}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-2 text-sm text-gray-900 max-w-xs">
+                        <MapPin size={16} className="flex-shrink-0" />
+                        <span className="truncate">{event.location}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${typeInfo.color}`}>
                         {typeInfo.label}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => openModal(event)}
