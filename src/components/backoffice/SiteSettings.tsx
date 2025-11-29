@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Save, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Globe, Search, Server } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 
@@ -9,19 +9,23 @@ const SiteSettings: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
 
+  useEffect(() => {
+    setConfig(siteConfig);
+  }, [siteConfig]);
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Update the global config
-    updateSiteConfig(config);
-    
-    setSaveMessage('Indstillinger gemt succesfuldt!');
+
+    try {
+      await updateSiteConfig(config);
+      setSaveMessage('Indstillinger gemt succesfuldt!');
+    } catch (error) {
+      setSaveMessage('Fejl ved gemning af indstillinger');
+      console.error('Error saving config:', error);
+    }
+
     setIsSaving(false);
-    
     setTimeout(() => setSaveMessage(''), 3000);
   };
 
