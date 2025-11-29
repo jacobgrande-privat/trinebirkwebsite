@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Save, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Globe, Search, Server } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 
@@ -15,6 +15,20 @@ const SiteSettings: React.FC = () => {
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
+
+  useEffect(() => {
+    if (!isSaving) {
+      setFormData({
+        siteName: siteConfig.siteName,
+        contactEmail: siteConfig.contactEmail,
+        phoneNumber: siteConfig.phoneNumber,
+        address: siteConfig.address,
+        socialMedia: siteConfig.socialMedia,
+        seoSettings: siteConfig.seoSettings,
+        contactForm: siteConfig.contactForm
+      });
+    }
+  }, [siteConfig, isSaving]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
