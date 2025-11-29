@@ -355,65 +355,69 @@ function AppContent() {
 
             <div className="grid md:grid-cols-2 gap-12">
               <div className="space-y-8">
-                <div>
-                  <h3 className="text-2xl font-bold mb-6">{content.contact.getInTouchTitle}</h3>
-                  <div className="space-y-4">
-                    {siteConfig.contactEmail && (
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center" aria-hidden="true">
-                          <Mail size={20} className="text-white" />
+                {(siteConfig.contactEmail || siteConfig.phoneNumber || siteConfig.address) && (
+                  <div>
+                    <h3 className="text-2xl font-bold mb-6">{content.contact.getInTouchTitle}</h3>
+                    <div className="space-y-4">
+                      {siteConfig.contactEmail && (
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center" aria-hidden="true">
+                            <Mail size={20} className="text-white" />
+                          </div>
+                          <div>
+                            <div className="font-semibold">{content.contact.emailLabel}</div>
+                            <div className="text-red-50">{siteConfig.contactEmail}</div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="font-semibold">{content.contact.emailLabel}</div>
-                          <div className="text-red-50">{siteConfig.contactEmail}</div>
+                      )}
+                      {siteConfig.phoneNumber && (
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center" aria-hidden="true">
+                            <Phone size={20} className="text-white" />
+                          </div>
+                          <div>
+                            <div className="font-semibold">{content.contact.phoneLabel}</div>
+                            <div className="text-red-50">{siteConfig.phoneNumber}</div>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                    {siteConfig.phoneNumber && (
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center" aria-hidden="true">
-                          <Phone size={20} className="text-white" />
+                      )}
+                      {siteConfig.address && (
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center" aria-hidden="true">
+                            <MapPin size={20} className="text-white" />
+                          </div>
+                          <div>
+                            <div className="font-semibold">{content.contact.addressLabel}</div>
+                            <div className="text-red-50" style={{ whiteSpace: 'pre-line' }}>{siteConfig.address}</div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="font-semibold">{content.contact.phoneLabel}</div>
-                          <div className="text-red-50">{siteConfig.phoneNumber}</div>
-                        </div>
-                      </div>
-                    )}
-                    {siteConfig.address && (
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center" aria-hidden="true">
-                          <MapPin size={20} className="text-white" />
-                        </div>
-                        <div>
-                          <div className="font-semibold">{content.contact.addressLabel}</div>
-                          <div className="text-red-50" style={{ whiteSpace: 'pre-line' }}>{siteConfig.address}</div>
-                        </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
 
-                <div>
-                  <h3 className="text-2xl font-bold mb-6">{content.contact.followTitle}</h3>
-                  <div className="flex gap-4">
-                    {siteConfig.socialMedia.facebook && (
-                      <a href={siteConfig.socialMedia.facebook} target="_blank" rel="noopener noreferrer" className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-400 transition-colors" aria-label="Besøg vores Facebook side">
-                        <Facebook size={20} className="text-white" aria-hidden="true" />
-                      </a>
-                    )}
-                    {siteConfig.socialMedia.twitter && (
-                      <a href={siteConfig.socialMedia.twitter} target="_blank" rel="noopener noreferrer" className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-400 transition-colors" aria-label="Besøg vores Twitter side">
-                        <Twitter size={20} className="text-white" aria-hidden="true" />
-                      </a>
-                    )}
-                    {siteConfig.socialMedia.instagram && (
-                      <a href={siteConfig.socialMedia.instagram} target="_blank" rel="noopener noreferrer" className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-400 transition-colors" aria-label="Besøg vores Instagram side">
-                        <Instagram size={20} className="text-white" aria-hidden="true" />
-                      </a>
-                    )}
+                {(siteConfig.socialMedia.facebook || siteConfig.socialMedia.twitter || siteConfig.socialMedia.instagram) && (
+                  <div>
+                    <h3 className="text-2xl font-bold mb-6">{content.contact.followTitle}</h3>
+                    <div className="flex gap-4">
+                      {siteConfig.socialMedia.facebook && (
+                        <a href={siteConfig.socialMedia.facebook} target="_blank" rel="noopener noreferrer" className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-400 transition-colors" aria-label="Besøg vores Facebook side">
+                          <Facebook size={20} className="text-white" aria-hidden="true" />
+                        </a>
+                      )}
+                      {siteConfig.socialMedia.twitter && (
+                        <a href={siteConfig.socialMedia.twitter} target="_blank" rel="noopener noreferrer" className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-400 transition-colors" aria-label="Besøg vores Twitter side">
+                          <Twitter size={20} className="text-white" aria-hidden="true" />
+                        </a>
+                      )}
+                      {siteConfig.socialMedia.instagram && (
+                        <a href={siteConfig.socialMedia.instagram} target="_blank" rel="noopener noreferrer" className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-400 transition-colors" aria-label="Besøg vores Instagram side">
+                          <Instagram size={20} className="text-white" aria-hidden="true" />
+                        </a>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               <div className="bg-white p-8 rounded-xl text-gray-900">
