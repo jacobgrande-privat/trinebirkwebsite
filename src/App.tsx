@@ -25,22 +25,6 @@ function AppContent() {
   // Check if we're in backoffice mode
   const isBackoffice = window.location.pathname.startsWith('/backoffice');
 
-  if (isBackoffice) {
-    return <BackofficeApp />;
-  }
-
-  // Show loading state while data is being fetched
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 via-white to-blue-50">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600 text-lg">Indlæser...</p>
-        </div>
-      </div>
-    );
-  }
-
   useEffect(() => {
     const path = window.location.pathname;
 
@@ -74,6 +58,23 @@ function AppContent() {
 
     setShow404(true);
   }, [pages]);
+
+  // Return early after all hooks
+  if (isBackoffice) {
+    return <BackofficeApp />;
+  }
+
+  // Show loading state while data is being fetched
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 via-white to-blue-50">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 text-lg">Indlæser...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Get dynamic page content
   const getPageBySlug = (slug: string) => {
