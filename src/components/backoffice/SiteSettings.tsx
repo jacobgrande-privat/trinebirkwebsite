@@ -104,7 +104,7 @@ const SiteSettings: React.FC = () => {
               <input
                 type="text"
                 value={formData.siteName}
-                onChange={(e) => updateFormData({ siteName: e.target.value })}
+                onChange={(e) => updateFormData('siteName', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               />
             </div>
@@ -126,7 +126,7 @@ const SiteSettings: React.FC = () => {
               <input
                 type="email"
                 value={formData.contactEmail}
-                onChange={(e) => updateFormData({ contactEmail: e.target.value })}
+                onChange={(e) => updateFormData('contactEmail', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               />
               <p className="text-xs text-gray-500 mt-1">
@@ -141,7 +141,7 @@ const SiteSettings: React.FC = () => {
               <input
                 type="tel"
                 value={formData.phoneNumber}
-                onChange={(e) => updateFormData({ phoneNumber: e.target.value })}
+                onChange={(e) => updateFormData('phoneNumber', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               />
             </div>
@@ -153,7 +153,7 @@ const SiteSettings: React.FC = () => {
               <textarea
                 rows={3}
                 value={formData.address}
-                onChange={(e) => updateFormData({ address: e.target.value })}
+                onChange={(e) => updateFormData('address', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               />
             </div>
