@@ -1,36 +1,37 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Save, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Globe, Search, Server } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 
 const SiteSettings: React.FC = () => {
   const { siteConfig, updateSiteConfig } = useData();
-  const [formData, setFormData] = useState(siteConfig);
-
+  const [formData, setFormData] = useState({
+    siteName: siteConfig.siteName,
+    contactEmail: siteConfig.contactEmail,
+    phoneNumber: siteConfig.phoneNumber,
+    address: siteConfig.address,
+    socialMedia: siteConfig.socialMedia,
+    seoSettings: siteConfig.seoSettings,
+    contactForm: siteConfig.contactForm
+  });
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
-
-  useEffect(() => {
-    setFormData(siteConfig);
-  }, [siteConfig]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
 
-    try {
-      await updateSiteConfig(formData);
-      setSaveMessage('Indstillinger gemt succesfuldt!');
-    } catch (error) {
-      setSaveMessage('Fejl ved gemning af indstillinger');
-      console.error('Error saving config:', error);
-    }
+    await new Promise(resolve => setTimeout(resolve, 500));
 
+    updateSiteConfig(formData);
+
+    setSaveMessage('Indstillinger gemt succesfuldt!');
     setIsSaving(false);
+
     setTimeout(() => setSaveMessage(''), 3000);
   };
 
-  const updateFormData = (updates: any) => {
-    setFormData(prev => ({ ...prev, ...updates }));
+  const updateFormData = (field: string, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const updateSocialMedia = (platform: string, value: string) => {
