@@ -355,40 +355,40 @@ function AppContent() {
 
             <div className="grid md:grid-cols-2 gap-12">
               <div className="space-y-8">
-                {(siteConfig.contactEmail || siteConfig.phoneNumber || siteConfig.address) && (
+                {(content.contact.contactEmail || content.contact.phoneNumber || content.contact.address) && (
                   <div>
                     <h3 className="text-2xl font-bold mb-6">{content.contact.getInTouchTitle}</h3>
                     <div className="space-y-4">
-                      {siteConfig.contactEmail && (
+                      {content.contact.contactEmail && (
                         <div className="flex items-center gap-4">
                           <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center" aria-hidden="true">
                             <Mail size={20} className="text-white" />
                           </div>
                           <div>
                             <div className="font-semibold">{content.contact.emailLabel}</div>
-                            <div className="text-red-50">{siteConfig.contactEmail}</div>
+                            <div className="text-red-50">{content.contact.contactEmail}</div>
                           </div>
                         </div>
                       )}
-                      {siteConfig.phoneNumber && (
+                      {content.contact.phoneNumber && (
                         <div className="flex items-center gap-4">
                           <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center" aria-hidden="true">
                             <Phone size={20} className="text-white" />
                           </div>
                           <div>
                             <div className="font-semibold">{content.contact.phoneLabel}</div>
-                            <div className="text-red-50">{siteConfig.phoneNumber}</div>
+                            <div className="text-red-50">{content.contact.phoneNumber}</div>
                           </div>
                         </div>
                       )}
-                      {siteConfig.address && (
+                      {content.contact.address && (
                         <div className="flex items-center gap-4">
                           <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center" aria-hidden="true">
                             <MapPin size={20} className="text-white" />
                           </div>
                           <div>
                             <div className="font-semibold">{content.contact.addressLabel}</div>
-                            <div className="text-red-50" style={{ whiteSpace: 'pre-line' }}>{siteConfig.address}</div>
+                            <div className="text-red-50" style={{ whiteSpace: 'pre-line' }}>{content.contact.address}</div>
                           </div>
                         </div>
                       )}
@@ -396,22 +396,22 @@ function AppContent() {
                   </div>
                 )}
 
-                {(siteConfig.socialMedia.facebook || siteConfig.socialMedia.twitter || siteConfig.socialMedia.instagram) && (
+                {(content.contact.facebookUrl || content.contact.twitterUrl || content.contact.instagramUrl) && (
                   <div>
                     <h3 className="text-2xl font-bold mb-6">{content.contact.followTitle}</h3>
                     <div className="flex gap-4">
-                      {siteConfig.socialMedia.facebook && (
-                        <a href={siteConfig.socialMedia.facebook} target="_blank" rel="noopener noreferrer" className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-400 transition-colors" aria-label="Besøg vores Facebook side">
+                      {content.contact.facebookUrl && (
+                        <a href={content.contact.facebookUrl} target="_blank" rel="noopener noreferrer" className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-400 transition-colors" aria-label="Besøg vores Facebook side">
                           <Facebook size={20} className="text-white" aria-hidden="true" />
                         </a>
                       )}
-                      {siteConfig.socialMedia.twitter && (
-                        <a href={siteConfig.socialMedia.twitter} target="_blank" rel="noopener noreferrer" className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-400 transition-colors" aria-label="Besøg vores Twitter side">
+                      {content.contact.twitterUrl && (
+                        <a href={content.contact.twitterUrl} target="_blank" rel="noopener noreferrer" className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-400 transition-colors" aria-label="Besøg vores Twitter side">
                           <Twitter size={20} className="text-white" aria-hidden="true" />
                         </a>
                       )}
-                      {siteConfig.socialMedia.instagram && (
-                        <a href={siteConfig.socialMedia.instagram} target="_blank" rel="noopener noreferrer" className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-400 transition-colors" aria-label="Besøg vores Instagram side">
+                      {content.contact.instagramUrl && (
+                        <a href={content.contact.instagramUrl} target="_blank" rel="noopener noreferrer" className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-400 transition-colors" aria-label="Besøg vores Instagram side">
                           <Instagram size={20} className="text-white" aria-hidden="true" />
                         </a>
                       )}

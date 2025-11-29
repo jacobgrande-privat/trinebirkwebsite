@@ -5,12 +5,6 @@ import { useData } from '../../contexts/DataContext';
 const ContentEditor: React.FC = () => {
   const { siteConfig, updateSiteConfig } = useData();
   const [content, setContent] = useState(siteConfig.pageContent);
-  const [contactInfo, setContactInfo] = useState({
-    contactEmail: siteConfig.contactEmail,
-    phoneNumber: siteConfig.phoneNumber,
-    address: siteConfig.address,
-    socialMedia: siteConfig.socialMedia
-  });
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
   const [activeTab, setActiveTab] = useState<'hero' | 'about' | 'values' | 'goals' | 'contact' | 'calendar' | 'footer'>('hero');
@@ -21,13 +15,7 @@ const ContentEditor: React.FC = () => {
 
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    updateSiteConfig({
-      pageContent: content,
-      contactEmail: contactInfo.contactEmail,
-      phoneNumber: contactInfo.phoneNumber,
-      address: contactInfo.address,
-      socialMedia: contactInfo.socialMedia
-    });
+    updateSiteConfig({ pageContent: content });
 
     setSaveMessage('Indhold gemt succesfuldt!');
     setIsSaving(false);
@@ -602,8 +590,8 @@ const ContentEditor: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Email Adresse</label>
                     <input
                       type="email"
-                      value={contactInfo.contactEmail}
-                      onChange={(e) => setContactInfo({ ...contactInfo, contactEmail: e.target.value })}
+                      value={content.contact.contactEmail || ''}
+                      onChange={(e) => updateContact('contactEmail', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                     />
                   </div>
@@ -612,8 +600,8 @@ const ContentEditor: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Telefon Nummer</label>
                     <input
                       type="tel"
-                      value={contactInfo.phoneNumber}
-                      onChange={(e) => setContactInfo({ ...contactInfo, phoneNumber: e.target.value })}
+                      value={content.contact.phoneNumber || ''}
+                      onChange={(e) => updateContact('phoneNumber', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                     />
                   </div>
@@ -622,8 +610,8 @@ const ContentEditor: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Adresse</label>
                     <textarea
                       rows={3}
-                      value={contactInfo.address}
-                      onChange={(e) => setContactInfo({ ...contactInfo, address: e.target.value })}
+                      value={content.contact.address || ''}
+                      onChange={(e) => updateContact('address', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                     />
                   </div>
@@ -637,11 +625,8 @@ const ContentEditor: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Facebook URL</label>
                     <input
                       type="url"
-                      value={contactInfo.socialMedia.facebook}
-                      onChange={(e) => setContactInfo({
-                        ...contactInfo,
-                        socialMedia: { ...contactInfo.socialMedia, facebook: e.target.value }
-                      })}
+                      value={content.contact.facebookUrl || ''}
+                      onChange={(e) => updateContact('facebookUrl', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                       placeholder="https://facebook.com/..."
                     />
@@ -651,11 +636,8 @@ const ContentEditor: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Twitter URL</label>
                     <input
                       type="url"
-                      value={contactInfo.socialMedia.twitter}
-                      onChange={(e) => setContactInfo({
-                        ...contactInfo,
-                        socialMedia: { ...contactInfo.socialMedia, twitter: e.target.value }
-                      })}
+                      value={content.contact.twitterUrl || ''}
+                      onChange={(e) => updateContact('twitterUrl', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                       placeholder="https://twitter.com/..."
                     />
@@ -665,11 +647,8 @@ const ContentEditor: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Instagram URL</label>
                     <input
                       type="url"
-                      value={contactInfo.socialMedia.instagram}
-                      onChange={(e) => setContactInfo({
-                        ...contactInfo,
-                        socialMedia: { ...contactInfo.socialMedia, instagram: e.target.value }
-                      })}
+                      value={content.contact.instagramUrl || ''}
+                      onChange={(e) => updateContact('instagramUrl', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                       placeholder="https://instagram.com/..."
                     />

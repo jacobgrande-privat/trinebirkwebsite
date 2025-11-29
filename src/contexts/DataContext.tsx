@@ -169,7 +169,13 @@ const defaultSiteConfig: SiteConfig = {
       emailLabel: 'Email',
       phoneLabel: 'Telefon',
       addressLabel: 'Adresse',
-      followTitle: 'Følg Mig'
+      followTitle: 'Følg Mig',
+      contactEmail: 'trine@trinebirk.dk',
+      phoneNumber: '+45 23 45 67 89',
+      address: 'Socialdemokratiet Holbæk\nAlgade 3, 4300 Holbæk',
+      facebookUrl: 'https://facebook.com/trinebirk',
+      twitterUrl: '',
+      instagramUrl: 'https://instagram.com/trinebirk'
     },
     calendar: {
       title: 'Kalender',
