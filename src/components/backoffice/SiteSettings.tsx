@@ -4,55 +4,72 @@ import { useData } from '../../contexts/DataContext';
 
 const SiteSettings: React.FC = () => {
   const { siteConfig, updateSiteConfig } = useData();
+  const [formData, setFormData] = useState(siteConfig);
 
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
 
-  const updateConfig = async (updates: any) => {
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+
     try {
-      await updateSiteConfig(updates);
+      await updateSiteConfig(formData);
+      setSaveMessage('Indstillinger gemt succesfuldt!');
     } catch (error) {
-      console.error('Error updating config:', error);
+      setSaveMessage('Fejl ved gemning af indstillinger');
+      console.error('Error saving config:', error);
     }
+
+    setIsSaving(false);
+    setTimeout(() => setSaveMessage(''), 3000);
   };
 
-  const updateSocialMedia = async (platform: string, value: string) => {
-    await updateConfig({
+  const updateFormData = (updates: any) => {
+    setFormData(prev => ({ ...prev, ...updates }));
+  };
+
+  const updateSocialMedia = (platform: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
       socialMedia: {
-        ...siteConfig.socialMedia,
+        ...prev.socialMedia,
         [platform]: value
       }
-    });
+    }));
   };
 
-  const updateSeoSettings = async (field: string, value: string) => {
-    await updateConfig({
+  const updateSeoSettings = (field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
       seoSettings: {
-        ...siteConfig.seoSettings,
+        ...prev.seoSettings,
         [field]: value
       }
-    });
+    }));
   };
 
-  const updateContactForm = async (field: string, value: any) => {
-    await updateConfig({
+  const updateContactForm = (field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
       contactForm: {
-        ...siteConfig.contactForm,
+        ...prev.contactForm,
         [field]: value
       }
-    });
+    }));
   };
 
-  const updateSmtpSettings = async (field: string, value: any) => {
-    await updateConfig({
+  const updateSmtpSettings = (field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
       contactForm: {
-        ...siteConfig.contactForm,
+        ...prev.contactForm,
         smtpSettings: {
-          ...siteConfig.contactForm.smtpSettings,
+          ...prev.contactForm.smtpSettings,
           [field]: value
         }
       }
-    });
+    }));
   };
 
   return (
@@ -66,7 +83,7 @@ const SiteSettings: React.FC = () => {
         )}
       </div>
 
-      <div className="space-y-8">
+      <form onSubmit={handleSave} className="space-y-8">
         {/* General Settings */}
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -81,8 +98,8 @@ const SiteSettings: React.FC = () => {
               </label>
               <input
                 type="text"
-                value={siteConfig.siteName}
-                onChange={(e) => updateConfig({ siteName: e.target.value })}
+                value={formData.siteName}
+                onChange={(e) => updateFormData({ siteName: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               />
             </div>
@@ -103,8 +120,8 @@ const SiteSettings: React.FC = () => {
               </label>
               <input
                 type="email"
-                value={siteConfig.contactEmail}
-                onChange={(e) => updateConfig({ contactEmail: e.target.value })}
+                value={formData.contactEmail}
+                onChange={(e) => updateFormData({ contactEmail: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               />
               <p className="text-xs text-gray-500 mt-1">
@@ -118,8 +135,8 @@ const SiteSettings: React.FC = () => {
               </label>
               <input
                 type="tel"
-                value={siteConfig.phoneNumber}
-                onChange={(e) => updateConfig({ phoneNumber: e.target.value })}
+                value={formData.phoneNumber}
+                onChange={(e) => updateFormData({ phoneNumber: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               />
             </div>
@@ -130,8 +147,8 @@ const SiteSettings: React.FC = () => {
               </label>
               <textarea
                 rows={3}
-                value={siteConfig.address}
-                onChange={(e) => updateConfig({ address: e.target.value })}
+                value={formData.address}
+                onChange={(e) => updateFormData({ address: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               />
             </div>
@@ -153,7 +170,7 @@ const SiteSettings: React.FC = () => {
               </label>
               <input
                 type="url"
-                value={siteConfig.socialMedia.facebook || ''}
+                value={formData.socialMedia.facebook || ''}
                 onChange={(e) => updateSocialMedia('facebook', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                 placeholder="https://facebook.com/ditbrugernavn"
@@ -167,7 +184,7 @@ const SiteSettings: React.FC = () => {
               </label>
               <input
                 type="url"
-                value={siteConfig.socialMedia.twitter || ''}
+                value={formData.socialMedia.twitter || ''}
                 onChange={(e) => updateSocialMedia('twitter', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                 placeholder="https://twitter.com/ditbrugernavn"
@@ -181,7 +198,7 @@ const SiteSettings: React.FC = () => {
               </label>
               <input
                 type="url"
-                value={siteConfig.socialMedia.instagram || ''}
+                value={formData.socialMedia.instagram || ''}
                 onChange={(e) => updateSocialMedia('instagram', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                 placeholder="https://instagram.com/ditbrugernavn"
@@ -204,7 +221,7 @@ const SiteSettings: React.FC = () => {
               </label>
               <input
                 type="email"
-                value={siteConfig.contactForm.recipientEmail}
+                value={formData.contactForm.recipientEmail}
                 onChange={(e) => updateContactForm('recipientEmail', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               />
@@ -223,7 +240,7 @@ const SiteSettings: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    value={siteConfig.contactForm.smtpSettings.host}
+                    value={formData.contactForm.smtpSettings.host}
                     onChange={(e) => updateSmtpSettings('host', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                     placeholder="smtp.gmail.com"
@@ -236,7 +253,7 @@ const SiteSettings: React.FC = () => {
                   </label>
                   <input
                     type="number"
-                    value={siteConfig.contactForm.smtpSettings.port}
+                    value={formData.contactForm.smtpSettings.port}
                     onChange={(e) => updateSmtpSettings('port', parseInt(e.target.value))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                     placeholder="587"
@@ -249,7 +266,7 @@ const SiteSettings: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    value={siteConfig.contactForm.smtpSettings.username}
+                    value={formData.contactForm.smtpSettings.username}
                     onChange={(e) => updateSmtpSettings('username', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                   />
@@ -261,7 +278,7 @@ const SiteSettings: React.FC = () => {
                   </label>
                   <input
                     type="password"
-                    value={siteConfig.contactForm.smtpSettings.password}
+                    value={formData.contactForm.smtpSettings.password}
                     onChange={(e) => updateSmtpSettings('password', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                   />
@@ -272,7 +289,7 @@ const SiteSettings: React.FC = () => {
                 <label className="flex items-center">
                   <input
                     type="checkbox"
-                    checked={siteConfig.contactForm.smtpSettings.secure}
+                    checked={formData.contactForm.smtpSettings.secure}
                     onChange={(e) => updateSmtpSettings('secure', e.target.checked)}
                     className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
                   />
@@ -297,7 +314,7 @@ const SiteSettings: React.FC = () => {
               </label>
               <input
                 type="text"
-                value={siteConfig.seoSettings.defaultTitle}
+                value={formData.seoSettings.defaultTitle}
                 onChange={(e) => updateSeoSettings('defaultTitle', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               />
@@ -312,18 +329,29 @@ const SiteSettings: React.FC = () => {
               </label>
               <textarea
                 rows={3}
-                value={siteConfig.seoSettings.defaultDescription}
+                value={formData.seoSettings.defaultDescription}
                 onChange={(e) => updateSeoSettings('defaultDescription', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                 maxLength={160}
               />
               <p className="text-xs text-gray-500 mt-1">
-                {siteConfig.seoSettings.defaultDescription.length}/160 tegn - Vises i søgeresultater
+                {formData.seoSettings.defaultDescription.length}/160 tegn - Vises i søgeresultater
               </p>
             </div>
           </div>
         </div>
-      </div>
+
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={isSaving}
+            className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Save size={20} />
+            {isSaving ? 'Gemmer...' : 'Gem Indstillinger'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 };
