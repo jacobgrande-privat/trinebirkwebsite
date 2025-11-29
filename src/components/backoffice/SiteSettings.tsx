@@ -1,15 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Globe, Search, Server } from 'lucide-react';
+import { Save, Globe, Search, Server } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 
 const SiteSettings: React.FC = () => {
   const { siteConfig, updateSiteConfig } = useData();
   const [formData, setFormData] = useState({
     siteName: siteConfig.siteName,
-    contactEmail: siteConfig.contactEmail,
-    phoneNumber: siteConfig.phoneNumber,
-    address: siteConfig.address,
-    socialMedia: siteConfig.socialMedia,
     seoSettings: siteConfig.seoSettings,
     contactForm: siteConfig.contactForm
   });
@@ -20,10 +16,6 @@ const SiteSettings: React.FC = () => {
     if (!isSaving) {
       setFormData({
         siteName: siteConfig.siteName,
-        contactEmail: siteConfig.contactEmail,
-        phoneNumber: siteConfig.phoneNumber,
-        address: siteConfig.address,
-        socialMedia: siteConfig.socialMedia,
         seoSettings: siteConfig.seoSettings,
         contactForm: siteConfig.contactForm
       });
@@ -46,16 +38,6 @@ const SiteSettings: React.FC = () => {
 
   const updateFormData = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const updateSocialMedia = (platform: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      socialMedia: {
-        ...prev.socialMedia,
-        [platform]: value
-      }
-    }));
   };
 
   const updateSeoSettings = (field: string, value: string) => {
@@ -120,107 +102,6 @@ const SiteSettings: React.FC = () => {
                 value={formData.siteName}
                 onChange={(e) => updateFormData('siteName', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Contact Information */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Mail size={20} />
-            Kontakt Information
-          </h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Adresse
-              </label>
-              <input
-                type="email"
-                value={formData.contactEmail}
-                onChange={(e) => updateFormData('contactEmail', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Denne email bruges til kontaktformularen
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Telefon Nummer
-              </label>
-              <input
-                type="tel"
-                value={formData.phoneNumber}
-                onChange={(e) => updateFormData('phoneNumber', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Adresse
-              </label>
-              <textarea
-                rows={3}
-                value={formData.address}
-                onChange={(e) => updateFormData('address', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Social Media */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Facebook size={20} />
-            Sociale Medier
-          </h3>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                <Facebook size={16} />
-                Facebook URL
-              </label>
-              <input
-                type="url"
-                value={formData.socialMedia.facebook || ''}
-                onChange={(e) => updateSocialMedia('facebook', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                placeholder="https://facebook.com/ditbrugernavn"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                <Twitter size={16} />
-                Twitter URL
-              </label>
-              <input
-                type="url"
-                value={formData.socialMedia.twitter || ''}
-                onChange={(e) => updateSocialMedia('twitter', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                placeholder="https://twitter.com/ditbrugernavn"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                <Instagram size={16} />
-                Instagram URL
-              </label>
-              <input
-                type="url"
-                value={formData.socialMedia.instagram || ''}
-                onChange={(e) => updateSocialMedia('instagram', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                placeholder="https://instagram.com/ditbrugernavn"
               />
             </div>
           </div>
