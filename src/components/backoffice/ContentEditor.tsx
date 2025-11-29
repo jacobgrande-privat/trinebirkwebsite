@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Save, FileText, Plus, Trash2 } from 'lucide-react';
+import MediaPicker from './MediaPicker';
 import { useData } from '../../contexts/DataContext';
 
 const ContentEditor: React.FC = () => {
@@ -241,12 +242,10 @@ const ContentEditor: React.FC = () => {
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Billede URL</label>
-                <input
-                  type="url"
+                <MediaPicker
                   value={content.hero.imageUrl}
-                  onChange={(e) => updateHero('imageUrl', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                  onChange={(url) => updateHero('imageUrl', url)}
+                  label="Billede URL"
                 />
               </div>
             </div>
