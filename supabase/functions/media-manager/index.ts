@@ -1,12 +1,11 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
-
-const MEDIA_DIR = "/tmp/media";
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -17,40 +16,65 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "No authorization header" }), {
+        status: 401,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+      });
+    }
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      {
+        global: {
+          headers: { Authorization: authHeader },
+        },
+      }
+    );
+
     const url = new URL(req.url);
     const path = url.pathname;
 
     // List all media files
     if (req.method === "GET" && path === "/media-manager") {
-      try {
-        await Deno.mkdir(MEDIA_DIR, { recursive: true });
-        const files: { name: string; url: string; size: number }[] = [];
-        
-        for await (const entry of Deno.readDir(MEDIA_DIR)) {
-          if (entry.isFile) {
-            const stat = await Deno.stat(`${MEDIA_DIR}/${entry.name}`);
-            files.push({
-              name: entry.name,
-              url: `/media/${entry.name}`,
-              size: stat.size
-            });
-          }
-        }
-
-        return new Response(JSON.stringify({ files }), {
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-          },
+      const { data, error } = await supabase.storage
+        .from("media")
+        .list("", {
+          sortBy: { column: "created_at", order: "desc" },
         });
-      } catch (error) {
-        return new Response(JSON.stringify({ files: [] }), {
+
+      if (error) {
+        return new Response(JSON.stringify({ files: [], error: error.message }), {
           headers: {
             ...corsHeaders,
             "Content-Type": "application/json",
           },
         });
       }
+
+      const files = data.map((file) => {
+        const { data: { publicUrl } } = supabase.storage
+          .from("media")
+          .getPublicUrl(file.name);
+
+        return {
+          name: file.name,
+          url: publicUrl,
+          size: file.metadata?.size || 0,
+        };
+      });
+
+      return new Response(JSON.stringify({ files }), {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+      });
     }
 
     // Upload a media file
@@ -68,7 +92,6 @@ Deno.serve(async (req: Request) => {
         });
       }
 
-      // Validate file type (images only)
       const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp", "image/svg+xml"];
       if (!validTypes.includes(file.type)) {
         return new Response(JSON.stringify({ error: "Invalid file type. Only images allowed." }), {
@@ -80,23 +103,37 @@ Deno.serve(async (req: Request) => {
         });
       }
 
-      // Generate safe filename
       const timestamp = Date.now();
       const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
       const filename = `${timestamp}-${safeName}`;
-      const filepath = `${MEDIA_DIR}/${filename}`;
 
-      // Ensure directory exists
-      await Deno.mkdir(MEDIA_DIR, { recursive: true });
-
-      // Save file
       const bytes = await file.arrayBuffer();
-      await Deno.writeFile(filepath, new Uint8Array(bytes));
+
+      const { error: uploadError } = await supabase.storage
+        .from("media")
+        .upload(filename, bytes, {
+          contentType: file.type,
+          upsert: false,
+        });
+
+      if (uploadError) {
+        return new Response(JSON.stringify({ error: uploadError.message }), {
+          status: 400,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+          },
+        });
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("media")
+        .getPublicUrl(filename);
 
       return new Response(JSON.stringify({
         success: true,
         filename,
-        url: `/media/${filename}`
+        url: publicUrl,
       }), {
         headers: {
           ...corsHeaders,
@@ -109,7 +146,7 @@ Deno.serve(async (req: Request) => {
     if (req.method === "DELETE" && path.startsWith("/media-manager/")) {
       const filename = path.replace("/media-manager/", "");
       
-      if (!filename || filename.includes("..") || filename.includes("/")) {
+      if (!filename || filename.includes("..")) {
         return new Response(JSON.stringify({ error: "Invalid filename" }), {
           status: 400,
           headers: {
@@ -119,25 +156,26 @@ Deno.serve(async (req: Request) => {
         });
       }
 
-      const filepath = `${MEDIA_DIR}/${filename}`;
+      const { error } = await supabase.storage
+        .from("media")
+        .remove([filename]);
 
-      try {
-        await Deno.remove(filepath);
-        return new Response(JSON.stringify({ success: true }), {
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-          },
-        });
-      } catch (error) {
-        return new Response(JSON.stringify({ error: "File not found" }), {
-          status: 404,
+      if (error) {
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 400,
           headers: {
             ...corsHeaders,
             "Content-Type": "application/json",
           },
         });
       }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+      });
     }
 
     return new Response(JSON.stringify({ error: "Not found" }), {

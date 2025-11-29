@@ -90,7 +90,7 @@ const MediaPicker: React.FC<MediaPickerProps> = ({ value, onChange, label = 'Bil
     }
   };
 
-  const handleDeleteFile = async (filename: string) => {
+  const handleDeleteFile = async (filename: string, url: string) => {
     if (!confirm('Er du sikker på at du vil slette dette billede?')) return;
 
     try {
@@ -107,7 +107,7 @@ const MediaPicker: React.FC<MediaPickerProps> = ({ value, onChange, label = 'Bil
 
       if (response.ok) {
         await loadMediaFiles();
-        if (value === `/media/${filename}`) {
+        if (value === url) {
           onChange('');
         }
       }
@@ -247,7 +247,7 @@ const MediaPicker: React.FC<MediaPickerProps> = ({ value, onChange, label = 'Bil
                             <p className="text-xs text-gray-400">{formatFileSize(file.size)}</p>
                           </div>
                           <button
-                            onClick={() => handleDeleteFile(file.name)}
+                            onClick={() => handleDeleteFile(file.name, file.url)}
                             className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity"
                             title="Slet"
                           >
