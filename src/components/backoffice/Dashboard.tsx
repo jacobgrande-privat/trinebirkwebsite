@@ -9,8 +9,7 @@ import {
   LogOut,
   BarChart3,
   Edit3,
-  Mail,
-  Download
+  Mail
 } from 'lucide-react';
 import CalendarManager from './CalendarManager';
 import PageManager from './PageManager';
@@ -24,7 +23,6 @@ type ActiveTab = 'overview' | 'calendar' | 'pages' | 'content' | 'users' | 'sett
 const Dashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
   const { user, logout } = useAuth();
-  const { downloadContent } = useData();
 
   const navigation = [
     { id: 'overview', name: 'Oversigt', icon: BarChart3 },
@@ -78,14 +76,6 @@ const Dashboard: React.FC = () => {
                 <div className="text-sm font-medium text-gray-900">{user?.name}</div>
                 <div className="text-xs text-gray-500 capitalize">{user?.role}</div>
               </div>
-              <button
-                onClick={downloadContent}
-                className="flex items-center gap-2 px-3 py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-                title="Download indhold som JSON fil"
-              >
-                <Download size={16} />
-                Download Indhold
-              </button>
               <button
                 onClick={logout}
                 className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:text-red-600 transition-colors"

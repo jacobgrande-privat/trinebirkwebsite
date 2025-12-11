@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { CalendarEvent, PageContent, SiteConfig, User } from '../types';
+import { supabase } from '../lib/supabase';
 
 interface DataContextType {
   events: CalendarEvent[];
@@ -19,8 +20,6 @@ interface DataContextType {
   addUser: (user: Omit<User, 'id' | 'createdAt' | 'lastLogin'>) => void;
   updateUser: (id: string, user: Partial<User>) => void;
   deleteUser: (id: string) => void;
-
-  downloadContent: () => void;
 
   isLoading: boolean;
 }
@@ -214,8 +213,48 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const loadContentFromJSON = async () => {
     try {
-      const response = await fetch('/content.json');
-      const data = await response.json();
+      const { data: fileData, error: downloadError } = await supabase.storage
+        .from('content')
+        .download('content.json');
+
+      if (downloadError) {
+        console.log('No content.json in storage, initializing from local file');
+        const response = await fetch('/content.json');
+        const localData = await response.json();
+
+        const contentBlob = new Blob([JSON.stringify(localData, null, 2)], { type: 'application/json' });
+
+        const { error: uploadError } = await supabase.storage
+          .from('content')
+          .upload('content.json', contentBlob, { upsert: true });
+
+        if (uploadError) {
+          console.error('Error uploading initial content:', uploadError);
+        }
+
+        if (localData.siteConfig) setSiteConfig(localData.siteConfig);
+        if (localData.pages) {
+          const mappedPages: PageContent[] = localData.pages.map((page: any) => ({
+            ...page,
+            createdAt: new Date(page.createdAt),
+            updatedAt: new Date(page.updatedAt)
+          }));
+          setPages(mappedPages);
+        }
+        if (localData.events) {
+          const mappedEvents: CalendarEvent[] = localData.events.map((event: any) => ({
+            ...event,
+            date: new Date(event.date),
+            createdAt: new Date(event.createdAt),
+            updatedAt: new Date(event.updatedAt)
+          }));
+          setEvents(mappedEvents);
+        }
+        return;
+      }
+
+      const text = await fileData.text();
+      const data = JSON.parse(text);
 
       if (data.siteConfig) {
         setSiteConfig(data.siteConfig);
@@ -240,10 +279,41 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setEvents(mappedEvents);
       }
     } catch (error) {
-      console.error('Error loading content from JSON:', error);
+      console.error('Error loading content from storage:', error);
     }
   };
 
+
+  const saveContentToStorage = async (updatedSiteConfig?: SiteConfig, updatedPages?: PageContent[], updatedEvents?: CalendarEvent[]) => {
+    try {
+      const contentData = {
+        siteConfig: updatedSiteConfig || siteConfig,
+        pages: (updatedPages || pages).map(page => ({
+          ...page,
+          createdAt: page.createdAt.toISOString(),
+          updatedAt: page.updatedAt.toISOString()
+        })),
+        events: (updatedEvents || events).map(event => ({
+          ...event,
+          date: event.date.toISOString(),
+          createdAt: event.createdAt.toISOString(),
+          updatedAt: event.updatedAt.toISOString()
+        }))
+      };
+
+      const contentBlob = new Blob([JSON.stringify(contentData, null, 2)], { type: 'application/json' });
+
+      const { error } = await supabase.storage
+        .from('content')
+        .upload('content.json', contentBlob, { upsert: true });
+
+      if (error) {
+        console.error('Error saving content to storage:', error);
+      }
+    } catch (error) {
+      console.error('Error saving content:', error);
+    }
+  };
 
   useEffect(() => {
     document.title = siteConfig.seoSettings.defaultTitle;
@@ -260,19 +330,25 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       createdAt: new Date(),
       updatedAt: new Date()
     };
-    setEvents(prev => [...prev, newEvent]);
+    const updatedEvents = [...events, newEvent];
+    setEvents(updatedEvents);
+    saveContentToStorage(undefined, undefined, updatedEvents);
   };
 
   const updateEvent = (id: string, eventData: Partial<CalendarEvent>) => {
-    setEvents(prev => prev.map(event =>
+    const updatedEvents = events.map(event =>
       event.id === id
         ? { ...event, ...eventData, updatedAt: new Date() }
         : event
-    ));
+    );
+    setEvents(updatedEvents);
+    saveContentToStorage(undefined, undefined, updatedEvents);
   };
 
   const deleteEvent = (id: string) => {
-    setEvents(prev => prev.filter(event => event.id !== id));
+    const updatedEvents = events.filter(event => event.id !== id);
+    setEvents(updatedEvents);
+    saveContentToStorage(undefined, undefined, updatedEvents);
   };
 
   const addPage = (pageData: Omit<PageContent, 'id' | 'createdAt' | 'updatedAt'>) => {
@@ -282,65 +358,45 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       createdAt: new Date(),
       updatedAt: new Date()
     };
-    setPages(prev => [...prev, newPage]);
+    const updatedPages = [...pages, newPage];
+    setPages(updatedPages);
+    saveContentToStorage(undefined, updatedPages);
   };
 
   const updatePage = (id: string, pageData: Partial<PageContent>) => {
-    setPages(prev => prev.map(page =>
+    const updatedPages = pages.map(page =>
       page.id === id
         ? { ...page, ...pageData, updatedAt: new Date() }
         : page
-    ));
+    );
+    setPages(updatedPages);
+    saveContentToStorage(undefined, updatedPages);
   };
 
   const deletePage = (id: string) => {
-    setPages(prev => prev.filter(page => page.id !== id));
+    const updatedPages = pages.filter(page => page.id !== id);
+    setPages(updatedPages);
+    saveContentToStorage(undefined, updatedPages);
   };
 
   const updateSiteConfig = (configData: Partial<SiteConfig>) => {
-    setSiteConfig(prev => ({
-      ...prev,
+    const updatedConfig = {
+      ...siteConfig,
       ...configData,
-      socialMedia: configData.socialMedia ? { ...prev.socialMedia, ...configData.socialMedia } : prev.socialMedia,
-      seoSettings: configData.seoSettings ? { ...prev.seoSettings, ...configData.seoSettings } : prev.seoSettings,
+      socialMedia: configData.socialMedia ? { ...siteConfig.socialMedia, ...configData.socialMedia } : siteConfig.socialMedia,
+      seoSettings: configData.seoSettings ? { ...siteConfig.seoSettings, ...configData.seoSettings } : siteConfig.seoSettings,
       pageContent: configData.pageContent ? {
-        hero: configData.pageContent.hero ? { ...prev.pageContent.hero, ...configData.pageContent.hero } : prev.pageContent.hero,
-        about: configData.pageContent.about ? { ...prev.pageContent.about, ...configData.pageContent.about } : prev.pageContent.about,
-        values: configData.pageContent.values ? { ...prev.pageContent.values, ...configData.pageContent.values } : prev.pageContent.values,
-        goals: configData.pageContent.goals ? { ...prev.pageContent.goals, ...configData.pageContent.goals } : prev.pageContent.goals,
-        contact: configData.pageContent.contact ? { ...prev.pageContent.contact, ...configData.pageContent.contact } : prev.pageContent.contact,
-        calendar: configData.pageContent.calendar ? { ...prev.pageContent.calendar, ...configData.pageContent.calendar } : prev.pageContent.calendar,
-        footer: configData.pageContent.footer ? { ...prev.pageContent.footer, ...configData.pageContent.footer } : prev.pageContent.footer
-      } : prev.pageContent
-    }));
-  };
-
-  const downloadContent = () => {
-    const contentData = {
-      siteConfig,
-      pages: pages.map(page => ({
-        ...page,
-        createdAt: page.createdAt.toISOString(),
-        updatedAt: page.updatedAt.toISOString()
-      })),
-      events: events.map(event => ({
-        ...event,
-        date: event.date.toISOString(),
-        createdAt: event.createdAt.toISOString(),
-        updatedAt: event.updatedAt.toISOString()
-      }))
+        hero: configData.pageContent.hero ? { ...siteConfig.pageContent.hero, ...configData.pageContent.hero } : siteConfig.pageContent.hero,
+        about: configData.pageContent.about ? { ...siteConfig.pageContent.about, ...configData.pageContent.about } : siteConfig.pageContent.about,
+        values: configData.pageContent.values ? { ...siteConfig.pageContent.values, ...configData.pageContent.values } : siteConfig.pageContent.values,
+        goals: configData.pageContent.goals ? { ...siteConfig.pageContent.goals, ...configData.pageContent.goals } : siteConfig.pageContent.goals,
+        contact: configData.pageContent.contact ? { ...siteConfig.pageContent.contact, ...configData.pageContent.contact } : siteConfig.pageContent.contact,
+        calendar: configData.pageContent.calendar ? { ...siteConfig.pageContent.calendar, ...configData.pageContent.calendar } : siteConfig.pageContent.calendar,
+        footer: configData.pageContent.footer ? { ...siteConfig.pageContent.footer, ...configData.pageContent.footer } : siteConfig.pageContent.footer
+      } : siteConfig.pageContent
     };
-
-    const dataStr = JSON.stringify(contentData, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'content.json';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    setSiteConfig(updatedConfig);
+    saveContentToStorage(updatedConfig);
   };
 
   const addUser = (userData: Omit<User, 'id' | 'createdAt' | 'lastLogin'>) => {
@@ -381,7 +437,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       addUser,
       updateUser: updateUserData,
       deleteUser: deleteUserData,
-      downloadContent,
       isLoading
     }}>
       {children}
