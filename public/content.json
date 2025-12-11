@@ -1,11 +1,11 @@
 {
   "siteConfig": {
-    "siteName": "Trine Birk - Socialdemokratiet",
-    "contactEmail": "trine@trinebirk.dk",
-    "phoneNumber": "+45 23 45 67 89",
-    "address": "Socialdemokratiet Holbæk\nAlgade 3, 4300 Holbæk",
+    "siteName": "Trine Birk AAndersen - Socialdemokratiet",
+    "contactEmail": "trine@boooomselector.dk",
+    "phoneNumber": "+45 11 11 11 11",
+    "address": "Socialdemokratiet Tøøløse, 4300 Holbæk",
     "contactForm": {
-      "recipientEmail": "trine@trinebirk.dk",
+      "recipientEmail": "trine@boooomselector.dk",
       "smtpSettings": {
         "host": "smtp.gmail.com",
         "port": 587,
@@ -15,20 +15,20 @@
       }
     },
     "socialMedia": {
-      "facebook": "https://facebook.com/trinebirk",
+      "facebook": "https://facebook.com/trinebirkboooomselector",
       "twitter": "",
-      "instagram": "https://instagram.com/trinebirk"
+      "instagram": "https://instagram.com/trinebirkboooomselector"
     },
     "seoSettings": {
-      "defaultTitle": "Trine Birk - Socialdemokratiet | Byrådskandidat",
-      "defaultDescription": "Stem på Trine Birk til Byrådet. Erfaring som pædagog og lokal politik. Kæmper for bedre velfærd i Holbæk."
+      "defaultTitle": "Trine Birk - Socialdemokratiet | Region ØstSjælland",
+      "defaultDescription": "Stem på Trine Birk til Regionen. Erfaring som Champ og lokal politik. Kæmper for bedre velfærd i Regionen."
     },
     "pageContent": {
       "hero": {
         "badge": "Trine Birk - Socialdemokratiet",
         "title": "Trine",
         "titleHighlight": "Birk",
-        "description": "Med erfaring som pædagog og engageret i lokal politik kæmper jeg for et stærkere lokalsamfund, hvor børn, familier og ældre får den omsorg de fortjener.",
+        "description": "Med erfaring som boooomselector og engageret i lokal politik kæmper jeg for et stærkere lokalsamfund, hvor børn, familier og ældre får den omsorg de fortjener.",
         "button1Text": "Se Mine Mærkesager",
         "button2Text": "Kontakt Mig",
         "yearsExperience": "15",
@@ -39,14 +39,14 @@
       },
       "about": {
         "title": "Om Trine",
-        "subtitle": "En stemme fra pædagogik med erfaring fra både institution og ledelse",
+        "subtitle": "En stemme fra boooomselector med erfaring fra både institution og ledelse",
         "backgroundTitle": "Min Baggrund",
         "backgroundText": "Som pædagog har jeg arbejdet med børn og familier i mange år. Jeg ved, hvad det vil sige at stå i frontlinjen af velfærden og kæmpe for at give børn den bedste start på livet.",
         "educationTitle": "Uddannelse & Erfaring",
         "educationItems": [
           "Pædagog, Holbæk Kommune",
           "Bestyrelsesmedlem i lokal forening",
-          "Aktiv i Socialdemokratiet Holbæk",
+          "Aktiv i Socialdemokratiet Tølløse",
           "Mor til to børn"
         ],
         "resultsTitle": "Mine Fokusområder",
@@ -146,9 +146,9 @@
         "contactEmail": "trine@trinebirk.dk",
         "phoneNumber": "+45 23 45 67 89",
         "address": "Socialdemokratiet Holbæk\nAlgade 3, 4300 Holbæk",
-        "facebookUrl": "https://facebook.com/trinebirk",
+        "facebookUrl": "https://facebook.com/trinebirkboooomselector",
         "twitterUrl": "",
-        "instagramUrl": "https://instagram.com/trinebirk"
+        "instagramUrl": "https://instagram.com/trinebirkboooomselector"
       },
       "calendar": {
         "title": "Kalender",
@@ -156,7 +156,7 @@
       },
       "footer": {
         "name": "Trine Birk",
-        "subtitle": "Trine Birk - Socialdemokratiet",
+        "subtitle": "Trine Birk AAndersen - Socialdemokratiet",
         "copyright": "© 2025 Trine Birk. Alle rettigheder forbeholdes."
       }
     }
