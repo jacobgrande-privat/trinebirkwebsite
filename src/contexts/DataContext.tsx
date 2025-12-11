@@ -1,12 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { CalendarEvent, PageContent, SiteConfig, User } from '../types';
-import { supabase } from '../lib/supabase';
 
 interface DataContextType {
   events: CalendarEvent[];
-  addEvent: (event: Omit<CalendarEvent, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
-  updateEvent: (id: string, event: Partial<CalendarEvent>) => Promise<void>;
-  deleteEvent: (id: string) => Promise<void>;
+  addEvent: (event: Omit<CalendarEvent, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateEvent: (id: string, event: Partial<CalendarEvent>) => void;
+  deleteEvent: (id: string) => void;
 
   pages: PageContent[];
   addPage: (page: Omit<PageContent, 'id' | 'createdAt' | 'updatedAt'>) => void;
@@ -205,10 +204,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const loadAllData = async () => {
     setIsLoading(true);
     try {
-      await Promise.all([
-        loadContentFromJSON(),
-        loadEvents()
-      ]);
+      await loadContentFromJSON();
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -233,40 +229,18 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }));
         setPages(mappedPages);
       }
+
+      if (data.events) {
+        const mappedEvents: CalendarEvent[] = data.events.map((event: any) => ({
+          ...event,
+          date: new Date(event.date),
+          createdAt: new Date(event.createdAt),
+          updatedAt: new Date(event.updatedAt)
+        }));
+        setEvents(mappedEvents);
+      }
     } catch (error) {
       console.error('Error loading content from JSON:', error);
-    }
-  };
-
-
-  const loadEvents = async () => {
-    const { data, error } = await supabase
-      .from('events')
-      .select('*')
-      .order('start_time', { ascending: true });
-
-    if (error) {
-      console.error('Error loading events:', error);
-      return;
-    }
-
-    if (data) {
-      const mappedEvents: CalendarEvent[] = data.map(event => ({
-        id: event.id,
-        title: event.title,
-        date: new Date(event.start_time),
-        time: new Date(event.start_time).toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' }),
-        location: event.location || '',
-        type: event.event_type || 'public',
-        description: event.description || '',
-        content: event.content || event.description || '',
-        image: event.image_url || '',
-        createdBy: event.created_by || '',
-        createdAt: new Date(event.created_at),
-        updatedAt: new Date(event.updated_at)
-      }));
-
-      setEvents(mappedEvents);
     }
   };
 
@@ -279,82 +253,26 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [siteConfig.seoSettings]);
 
-  const addEvent = async (eventData: Omit<CalendarEvent, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const startTime = new Date(eventData.date);
-    const [hours, minutes] = eventData.time.split(':');
-    startTime.setHours(parseInt(hours), parseInt(minutes));
-
-    const { data, error } = await supabase
-      .from('events')
-      .insert({
-        title: eventData.title,
-        description: eventData.description,
-        location: eventData.location,
-        start_time: startTime.toISOString(),
-        event_type: eventData.type,
-        content: eventData.content || '',
-        image_url: eventData.image || '',
-        is_published: true
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error adding event:', error);
-      throw error;
-    }
-
-    await loadEvents();
+  const addEvent = (eventData: Omit<CalendarEvent, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newEvent: CalendarEvent = {
+      ...eventData,
+      id: Date.now().toString(),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    setEvents(prev => [...prev, newEvent]);
   };
 
-  const updateEvent = async (id: string, eventData: Partial<CalendarEvent>) => {
-    const updateData: any = {};
-
-    if (eventData.title) updateData.title = eventData.title;
-    if (eventData.description) updateData.description = eventData.description;
-    if (eventData.location) updateData.location = eventData.location;
-    if (eventData.type) updateData.event_type = eventData.type;
-    if (eventData.content !== undefined) updateData.content = eventData.content;
-    if (eventData.image !== undefined) updateData.image_url = eventData.image;
-
-    if (eventData.date || eventData.time) {
-      const existingEvent = events.find(e => e.id === id);
-      if (existingEvent) {
-        const startTime = new Date(eventData.date || existingEvent.date);
-        const timeStr = eventData.time || existingEvent.time;
-        const [hours, minutes] = timeStr.split(':');
-        startTime.setHours(parseInt(hours), parseInt(minutes));
-        updateData.start_time = startTime.toISOString();
-      }
-    }
-
-    updateData.updated_at = new Date().toISOString();
-
-    const { error } = await supabase
-      .from('events')
-      .update(updateData)
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error updating event:', error);
-      throw error;
-    }
-
-    await loadEvents();
+  const updateEvent = (id: string, eventData: Partial<CalendarEvent>) => {
+    setEvents(prev => prev.map(event =>
+      event.id === id
+        ? { ...event, ...eventData, updatedAt: new Date() }
+        : event
+    ));
   };
 
-  const deleteEvent = async (id: string) => {
-    const { error } = await supabase
-      .from('events')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error deleting event:', error);
-      throw error;
-    }
-
-    await loadEvents();
+  const deleteEvent = (id: string) => {
+    setEvents(prev => prev.filter(event => event.id !== id));
   };
 
   const addPage = (pageData: Omit<PageContent, 'id' | 'createdAt' | 'updatedAt'>) => {
@@ -404,6 +322,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         ...page,
         createdAt: page.createdAt.toISOString(),
         updatedAt: page.updatedAt.toISOString()
+      })),
+      events: events.map(event => ({
+        ...event,
+        date: event.date.toISOString(),
+        createdAt: event.createdAt.toISOString(),
+        updatedAt: event.updatedAt.toISOString()
       }))
     };
 
