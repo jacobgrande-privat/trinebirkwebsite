@@ -27,7 +27,7 @@
       "hero": {
         "badge": "Trine Birk - Socialdemokratiet",
         "title": "Trine",
-        "titleHighlight": "Birk",
+        "titleHighlight": "Birk AAaandersen",
         "description": "Med erfaring som boooomselector og engageret i lokal politik kæmper jeg for et stærkere lokalsamfund, hvor børn, familier og ældre får den omsorg de fortjener.",
         "button1Text": "Se Mine Mærkesager",
         "button2Text": "Kontakt Mig",
@@ -143,9 +143,9 @@
         "phoneLabel": "Telefon",
         "addressLabel": "Adresse",
         "followTitle": "Følg Mig",
-        "contactEmail": "trine@trinebirk.dk",
-        "phoneNumber": "+45 23 45 67 89",
-        "address": "Socialdemokratiet Holbæk\nAlgade 3, 4300 Holbæk",
+        "contactEmail": "",
+        "phoneNumber": "",
+        "address": "Socialdemokratiet Tølløse",
         "facebookUrl": "https://facebook.com/trinebirkboooomselector",
         "twitterUrl": "",
         "instagramUrl": "https://instagram.com/trinebirkboooomselector"
