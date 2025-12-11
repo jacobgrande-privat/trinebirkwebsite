@@ -9,17 +9,19 @@ interface DataContextType {
   deleteEvent: (id: string) => Promise<void>;
 
   pages: PageContent[];
-  addPage: (page: Omit<PageContent, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
-  updatePage: (id: string, page: Partial<PageContent>) => Promise<void>;
-  deletePage: (id: string) => Promise<void>;
+  addPage: (page: Omit<PageContent, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updatePage: (id: string, page: Partial<PageContent>) => void;
+  deletePage: (id: string) => void;
 
   siteConfig: SiteConfig;
-  updateSiteConfig: (config: Partial<SiteConfig>) => Promise<void>;
+  updateSiteConfig: (config: Partial<SiteConfig>) => void;
 
   users: User[];
   addUser: (user: Omit<User, 'id' | 'createdAt' | 'lastLogin'>) => void;
   updateUser: (id: string, user: Partial<User>) => void;
   deleteUser: (id: string) => void;
+
+  downloadContent: () => void;
 
   isLoading: boolean;
 }
@@ -204,10 +206,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsLoading(true);
     try {
       await Promise.all([
-        loadSiteConfig(),
-        loadPageSections(),
-        loadEvents(),
-        loadDynamicPages()
+        loadContentFromJSON(),
+        loadEvents()
       ]);
     } catch (error) {
       console.error('Error loading data:', error);
@@ -216,115 +216,28 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const loadSiteConfig = async () => {
-    const { data, error } = await supabase
-      .from('site_config')
-      .select('*')
-      .maybeSingle();
+  const loadContentFromJSON = async () => {
+    try {
+      const response = await fetch('/content.json');
+      const data = await response.json();
 
-    if (error) {
-      console.error('Error loading site config:', error);
-      return;
-    }
+      if (data.siteConfig) {
+        setSiteConfig(data.siteConfig);
+      }
 
-    if (data) {
-      setSiteConfig(prev => ({
-        ...prev,
-        siteName: data.site_name || prev.siteName,
-        contactEmail: data.contact_email || prev.contactEmail,
-        phoneNumber: data.phone_number || prev.phoneNumber,
-        address: data.address || prev.address,
-        socialMedia: {
-          facebook: data.facebook_url || '',
-          twitter: data.twitter_url || '',
-          instagram: data.instagram_url || ''
-        },
-        seoSettings: {
-          defaultTitle: data.seo_title || prev.seoSettings.defaultTitle,
-          defaultDescription: data.seo_description || prev.seoSettings.defaultDescription
-        }
-      }));
-    } else {
-      await initializeSiteConfig();
+      if (data.pages) {
+        const mappedPages: PageContent[] = data.pages.map((page: any) => ({
+          ...page,
+          createdAt: new Date(page.createdAt),
+          updatedAt: new Date(page.updatedAt)
+        }));
+        setPages(mappedPages);
+      }
+    } catch (error) {
+      console.error('Error loading content from JSON:', error);
     }
   };
 
-  const initializeSiteConfig = async () => {
-    const { error } = await supabase
-      .from('site_config')
-      .insert({
-        site_name: defaultSiteConfig.siteName,
-        contact_email: defaultSiteConfig.contactEmail,
-        phone_number: defaultSiteConfig.phoneNumber,
-        address: defaultSiteConfig.address,
-        facebook_url: defaultSiteConfig.socialMedia.facebook,
-        twitter_url: defaultSiteConfig.socialMedia.twitter,
-        instagram_url: defaultSiteConfig.socialMedia.instagram,
-        seo_title: defaultSiteConfig.seoSettings.defaultTitle,
-        seo_description: defaultSiteConfig.seoSettings.defaultDescription
-      });
-
-    if (error) {
-      console.error('Error initializing site config:', error);
-    }
-  };
-
-  const loadPageSections = async () => {
-    const { data, error } = await supabase
-      .from('page_sections')
-      .select('*');
-
-    if (error) {
-      console.error('Error loading page sections:', error);
-      return;
-    }
-
-    if (data && data.length > 0) {
-      const updatedConfig = { ...siteConfig };
-
-      data.forEach(section => {
-        if (section.section_key === 'hero') {
-          updatedConfig.pageContent.hero = { ...updatedConfig.pageContent.hero, ...section.content };
-        } else if (section.section_key === 'about') {
-          updatedConfig.pageContent.about = { ...updatedConfig.pageContent.about, ...section.content };
-        } else if (section.section_key === 'values') {
-          updatedConfig.pageContent.values = { ...updatedConfig.pageContent.values, ...section.content };
-        } else if (section.section_key === 'goals') {
-          updatedConfig.pageContent.goals = { ...updatedConfig.pageContent.goals, ...section.content };
-        } else if (section.section_key === 'contact') {
-          updatedConfig.pageContent.contact = { ...updatedConfig.pageContent.contact, ...section.content };
-        } else if (section.section_key === 'calendar') {
-          updatedConfig.pageContent.calendar = { ...updatedConfig.pageContent.calendar, ...section.content };
-        } else if (section.section_key === 'footer') {
-          updatedConfig.pageContent.footer = { ...updatedConfig.pageContent.footer, ...section.content };
-        }
-      });
-
-      setSiteConfig(updatedConfig);
-    } else {
-      await initializePageSections();
-    }
-  };
-
-  const initializePageSections = async () => {
-    const sections = [
-      { section_key: 'hero', content: defaultSiteConfig.pageContent.hero },
-      { section_key: 'about', content: defaultSiteConfig.pageContent.about },
-      { section_key: 'values', content: defaultSiteConfig.pageContent.values },
-      { section_key: 'goals', content: defaultSiteConfig.pageContent.goals },
-      { section_key: 'contact', content: defaultSiteConfig.pageContent.contact },
-      { section_key: 'calendar', content: defaultSiteConfig.pageContent.calendar },
-      { section_key: 'footer', content: defaultSiteConfig.pageContent.footer }
-    ];
-
-    const { error } = await supabase
-      .from('page_sections')
-      .insert(sections);
-
-    if (error) {
-      console.error('Error initializing page sections:', error);
-    }
-  };
 
   const loadEvents = async () => {
     const { data, error } = await supabase
@@ -357,33 +270,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const loadDynamicPages = async () => {
-    const { data, error } = await supabase
-      .from('dynamic_pages')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Error loading dynamic pages:', error);
-      return;
-    }
-
-    if (data) {
-      const mappedPages: PageContent[] = data.map(page => ({
-        id: page.id,
-        slug: page.slug,
-        title: page.title,
-        content: page.content,
-        metaDescription: page.meta_description || '',
-        published: page.published,
-        createdBy: page.created_by || '',
-        createdAt: new Date(page.created_at),
-        updatedAt: new Date(page.updated_at)
-      }));
-
-      setPages(mappedPages);
-    }
-  };
 
   useEffect(() => {
     document.title = siteConfig.seoSettings.defaultTitle;
@@ -471,117 +357,66 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     await loadEvents();
   };
 
-  const addPage = async (pageData: Omit<PageContent, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const { data, error } = await supabase
-      .from('dynamic_pages')
-      .insert({
-        slug: pageData.slug,
-        title: pageData.title,
-        content: pageData.content,
-        meta_description: pageData.metaDescription,
-        published: pageData.published
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error adding page:', error);
-      throw error;
-    }
-
-    await loadDynamicPages();
+  const addPage = (pageData: Omit<PageContent, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newPage: PageContent = {
+      ...pageData,
+      id: Date.now().toString(),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    setPages(prev => [...prev, newPage]);
   };
 
-  const updatePage = async (id: string, pageData: Partial<PageContent>) => {
-    const updateData: any = {
-      updated_at: new Date().toISOString()
+  const updatePage = (id: string, pageData: Partial<PageContent>) => {
+    setPages(prev => prev.map(page =>
+      page.id === id
+        ? { ...page, ...pageData, updatedAt: new Date() }
+        : page
+    ));
+  };
+
+  const deletePage = (id: string) => {
+    setPages(prev => prev.filter(page => page.id !== id));
+  };
+
+  const updateSiteConfig = (configData: Partial<SiteConfig>) => {
+    setSiteConfig(prev => ({
+      ...prev,
+      ...configData,
+      socialMedia: configData.socialMedia ? { ...prev.socialMedia, ...configData.socialMedia } : prev.socialMedia,
+      seoSettings: configData.seoSettings ? { ...prev.seoSettings, ...configData.seoSettings } : prev.seoSettings,
+      pageContent: configData.pageContent ? {
+        hero: configData.pageContent.hero ? { ...prev.pageContent.hero, ...configData.pageContent.hero } : prev.pageContent.hero,
+        about: configData.pageContent.about ? { ...prev.pageContent.about, ...configData.pageContent.about } : prev.pageContent.about,
+        values: configData.pageContent.values ? { ...prev.pageContent.values, ...configData.pageContent.values } : prev.pageContent.values,
+        goals: configData.pageContent.goals ? { ...prev.pageContent.goals, ...configData.pageContent.goals } : prev.pageContent.goals,
+        contact: configData.pageContent.contact ? { ...prev.pageContent.contact, ...configData.pageContent.contact } : prev.pageContent.contact,
+        calendar: configData.pageContent.calendar ? { ...prev.pageContent.calendar, ...configData.pageContent.calendar } : prev.pageContent.calendar,
+        footer: configData.pageContent.footer ? { ...prev.pageContent.footer, ...configData.pageContent.footer } : prev.pageContent.footer
+      } : prev.pageContent
+    }));
+  };
+
+  const downloadContent = () => {
+    const contentData = {
+      siteConfig,
+      pages: pages.map(page => ({
+        ...page,
+        createdAt: page.createdAt.toISOString(),
+        updatedAt: page.updatedAt.toISOString()
+      }))
     };
 
-    if (pageData.slug !== undefined) updateData.slug = pageData.slug;
-    if (pageData.title !== undefined) updateData.title = pageData.title;
-    if (pageData.content !== undefined) updateData.content = pageData.content;
-    if (pageData.metaDescription !== undefined) updateData.meta_description = pageData.metaDescription;
-    if (pageData.published !== undefined) updateData.published = pageData.published;
-
-    const { error } = await supabase
-      .from('dynamic_pages')
-      .update(updateData)
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error updating page:', error);
-      throw error;
-    }
-
-    await loadDynamicPages();
-  };
-
-  const deletePage = async (id: string) => {
-    const { error } = await supabase
-      .from('dynamic_pages')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error deleting page:', error);
-      throw error;
-    }
-
-    await loadDynamicPages();
-  };
-
-  const updateSiteConfig = async (configData: Partial<SiteConfig>) => {
-    const updateData: any = {
-      updated_at: new Date().toISOString()
-    };
-
-    if (configData.siteName) updateData.site_name = configData.siteName;
-    if (configData.contactEmail) updateData.contact_email = configData.contactEmail;
-    if (configData.phoneNumber) updateData.phone_number = configData.phoneNumber;
-    if (configData.address) updateData.address = configData.address;
-    if (configData.socialMedia?.facebook !== undefined) updateData.facebook_url = configData.socialMedia.facebook;
-    if (configData.socialMedia?.twitter !== undefined) updateData.twitter_url = configData.socialMedia.twitter;
-    if (configData.socialMedia?.instagram !== undefined) updateData.instagram_url = configData.socialMedia.instagram;
-    if (configData.seoSettings?.defaultTitle) updateData.seo_title = configData.seoSettings.defaultTitle;
-    if (configData.seoSettings?.defaultDescription) updateData.seo_description = configData.seoSettings.defaultDescription;
-
-    const { error } = await supabase
-      .from('site_config')
-      .update(updateData)
-      .eq('id', (await supabase.from('site_config').select('id').maybeSingle()).data?.id);
-
-    if (error) {
-      console.error('Error updating site config:', error);
-      throw error;
-    }
-
-    if (configData.pageContent) {
-      const sections = [];
-      if (configData.pageContent.hero) sections.push({ section_key: 'hero', content: configData.pageContent.hero });
-      if (configData.pageContent.about) sections.push({ section_key: 'about', content: configData.pageContent.about });
-      if (configData.pageContent.values) sections.push({ section_key: 'values', content: configData.pageContent.values });
-      if (configData.pageContent.goals) sections.push({ section_key: 'goals', content: configData.pageContent.goals });
-      if (configData.pageContent.contact) sections.push({ section_key: 'contact', content: configData.pageContent.contact });
-      if (configData.pageContent.calendar) sections.push({ section_key: 'calendar', content: configData.pageContent.calendar });
-      if (configData.pageContent.footer) sections.push({ section_key: 'footer', content: configData.pageContent.footer });
-
-      for (const section of sections) {
-        const { error: sectionError } = await supabase
-          .from('page_sections')
-          .update({
-            content: section.content,
-            updated_at: new Date().toISOString()
-          })
-          .eq('section_key', section.section_key);
-
-        if (sectionError) {
-          console.error(`Error updating section ${section.section_key}:`, sectionError);
-        }
-      }
-    }
-
-    await loadSiteConfig();
-    await loadPageSections();
+    const dataStr = JSON.stringify(contentData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'content.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const addUser = (userData: Omit<User, 'id' | 'createdAt' | 'lastLogin'>) => {
@@ -622,6 +457,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       addUser,
       updateUser: updateUserData,
       deleteUser: deleteUserData,
+      downloadContent,
       isLoading
     }}>
       {children}

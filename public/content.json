@@ -1,0 +1,165 @@
+{
+  "siteConfig": {
+    "siteName": "Trine Birk - Socialdemokratiet",
+    "contactEmail": "trine@trinebirk.dk",
+    "phoneNumber": "+45 23 45 67 89",
+    "address": "Socialdemokratiet Holbæk\nAlgade 3, 4300 Holbæk",
+    "contactForm": {
+      "recipientEmail": "trine@trinebirk.dk",
+      "smtpSettings": {
+        "host": "smtp.gmail.com",
+        "port": 587,
+        "secure": false,
+        "username": "",
+        "password": ""
+      }
+    },
+    "socialMedia": {
+      "facebook": "https://facebook.com/trinebirk",
+      "twitter": "",
+      "instagram": "https://instagram.com/trinebirk"
+    },
+    "seoSettings": {
+      "defaultTitle": "Trine Birk - Socialdemokratiet | Byrådskandidat",
+      "defaultDescription": "Stem på Trine Birk til Byrådet. Erfaring som pædagog og lokal politik. Kæmper for bedre velfærd i Holbæk."
+    },
+    "pageContent": {
+      "hero": {
+        "badge": "Trine Birk - Socialdemokratiet",
+        "title": "Trine",
+        "titleHighlight": "Birk",
+        "description": "Med erfaring som pædagog og engageret i lokal politik kæmper jeg for et stærkere lokalsamfund, hvor børn, familier og ældre får den omsorg de fortjener.",
+        "button1Text": "Se Mine Mærkesager",
+        "button2Text": "Kontakt Mig",
+        "yearsExperience": "15",
+        "yearsLabel": "Års Erfaring",
+        "partyBadge": "S",
+        "partyName": "Socialdemokratiet",
+        "imageUrl": "https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=800"
+      },
+      "about": {
+        "title": "Om Trine",
+        "subtitle": "En stemme fra pædagogik med erfaring fra både institution og ledelse",
+        "backgroundTitle": "Min Baggrund",
+        "backgroundText": "Som pædagog har jeg arbejdet med børn og familier i mange år. Jeg ved, hvad det vil sige at stå i frontlinjen af velfærden og kæmpe for at give børn den bedste start på livet.",
+        "educationTitle": "Uddannelse & Erfaring",
+        "educationItems": [
+          "Pædagog, Holbæk Kommune",
+          "Bestyrelsesmedlem i lokal forening",
+          "Aktiv i Socialdemokratiet Holbæk",
+          "Mor til to børn"
+        ],
+        "resultsTitle": "Mine Fokusområder",
+        "resultStats": [
+          { "value": "Børn", "label": "Bedre Normeringer" },
+          { "value": "Familie", "label": "Støtte til Familier" },
+          { "value": "Ældre", "label": "Værdig Ældrepleje" },
+          { "value": "Klima", "label": "Grøn Omstilling" }
+        ],
+        "visionTitle": "Min Vision",
+        "visionText": "\"Et Holbæk hvor alle børn får en god start på livet, hvor familier har tid til hinanden, og hvor ældre mødes med værdighed og omsorg. Det er det Holbæk, jeg vil kæmpe for.\""
+      },
+      "values": {
+        "title": "Socialdemokratiske Værdier",
+        "subtitle": "Grundpillerne i min politik bygger på solidaritet, lighed og fællesskab",
+        "items": [
+          {
+            "title": "Solidaritet",
+            "description": "Vi står sammen om at løfte de svageste i samfundet. Ingen skal stå alene med udfordringer.",
+            "icon": "heart"
+          },
+          {
+            "title": "Lighed",
+            "description": "Alle børn skal have samme muligheder uanset forældrenes økonomi.",
+            "icon": "users"
+          },
+          {
+            "title": "Velfærd",
+            "description": "Gode institutioner, ordentlig ældrepleje og stærke fællesskaber.",
+            "icon": "shield"
+          },
+          {
+            "title": "Fællesskab",
+            "description": "Vi bygger et stærkt lokalsamfund sammen.",
+            "icon": "briefcase"
+          }
+        ]
+      },
+      "goals": {
+        "title": "Mine Mærkesager",
+        "subtitle": "Konkrete forslag til et bedre Holbæk",
+        "sections": [
+          {
+            "title": "Børn & Uddannelse",
+            "description": "Bedre normeringer og kvalitet i vores institutioner:",
+            "icon": "users",
+            "color": "blue",
+            "items": [
+              "Flere pædagoger i vuggestuer og børnehaver",
+              "Mindre klasser i folkeskolen",
+              "Moderne skoler og institutioner"
+            ]
+          },
+          {
+            "title": "Ældre & Omsorg",
+            "description": "Værdig ældrepleje med tid til omsorg:",
+            "icon": "shield",
+            "color": "red",
+            "items": [
+              "Mere tid til den enkelte",
+              "Bedre arbejdsvilkår for personalet",
+              "Moderne plejehjem"
+            ]
+          },
+          {
+            "title": "Grøn Omstilling",
+            "description": "Holbæk skal være en grøn kommune:",
+            "icon": "leaf",
+            "color": "green",
+            "items": [
+              "Bedre kollektiv trafik",
+              "Grønne områder og parker",
+              "Bæredygtige løsninger"
+            ]
+          },
+          {
+            "title": "Lokale Fællesskaber",
+            "description": "Støtte til foreninger og kulturliv:",
+            "icon": "home",
+            "color": "purple",
+            "items": [
+              "Bedre faciliteter til foreninger",
+              "Støtte til kulturarrangementer",
+              "Levende bycentrum"
+            ]
+          }
+        ]
+      },
+      "contact": {
+        "title": "Kontakt Trine",
+        "subtitle": "Har du spørgsmål til min politik? Jeg vil gerne høre fra dig.",
+        "getInTouchTitle": "Kontakt",
+        "emailLabel": "Email",
+        "phoneLabel": "Telefon",
+        "addressLabel": "Adresse",
+        "followTitle": "Følg Mig",
+        "contactEmail": "trine@trinebirk.dk",
+        "phoneNumber": "+45 23 45 67 89",
+        "address": "Socialdemokratiet Holbæk\nAlgade 3, 4300 Holbæk",
+        "facebookUrl": "https://facebook.com/trinebirk",
+        "twitterUrl": "",
+        "instagramUrl": "https://instagram.com/trinebirk"
+      },
+      "calendar": {
+        "title": "Kalender",
+        "subtitle": "Se hvornår og hvor jeg er tilgængelig."
+      },
+      "footer": {
+        "name": "Trine Birk",
+        "subtitle": "Trine Birk - Socialdemokratiet",
+        "copyright": "© 2025 Trine Birk. Alle rettigheder forbeholdes."
+      }
+    }
+  },
+  "pages": []
+}

@@ -10,11 +10,9 @@ const ContentEditor: React.FC = () => {
   const [saveMessage, setSaveMessage] = useState('');
   const [activeTab, setActiveTab] = useState<'hero' | 'about' | 'values' | 'goals' | 'contact' | 'calendar' | 'footer'>('hero');
 
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
-
-    await new Promise(resolve => setTimeout(resolve, 1000));
 
     updateSiteConfig({ pageContent: content });
 
