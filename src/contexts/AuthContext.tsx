@@ -1,6 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, AuthState } from '../types';
-import { supabase } from '../lib/supabase';
+import { clearContentAdminToken } from '../lib/contentAuth';
+import {
+  clearBackofficeSessionToken,
+  getBackofficeSessionToken,
+  setBackofficeSessionToken
+} from '../lib/backofficeSession';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<boolean>;
@@ -19,108 +24,75 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     checkSession();
+  }, []);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        loadUserData(session.user.id, session.user.email!);
-      } else {
+  const checkSession = async () => {
+    try {
+      const token = getBackofficeSessionToken();
+      if (!token) {
+        setAuthState(prev => ({ ...prev, isLoading: false }));
+        return;
+      }
+
+      const response = await fetch('/api/backoffice-auth', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        clearBackofficeSessionToken();
         setAuthState({
           user: null,
           isAuthenticated: false,
           isLoading: false
         });
+        return;
       }
-    });
 
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  const checkSession = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        await loadUserData(session.user.id, session.user.email!);
-      } else {
-        setAuthState(prev => ({ ...prev, isLoading: false }));
-      }
+      const result = await response.json();
+      const user = mapUser(result.user);
+      setAuthState({
+        user,
+        isAuthenticated: true,
+        isLoading: false
+      });
     } catch (error) {
       console.error('Error checking session:', error);
       setAuthState(prev => ({ ...prev, isLoading: false }));
     }
   };
 
-  const loadUserData = async (userId: string, email: string) => {
-    try {
-      const { data: backofficeUser, error } = await supabase
-        .from('backoffice_users')
-        .select('*')
-        .eq('email', email)
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (backofficeUser) {
-        const user: User = {
-          id: backofficeUser.id,
-          email: backofficeUser.email,
-          name: backofficeUser.name,
-          role: 'admin',
-          createdAt: new Date(backofficeUser.created_at),
-          lastLogin: new Date()
-        };
-
-        setAuthState({
-          user,
-          isAuthenticated: true,
-          isLoading: false
-        });
-      } else {
-        await supabase.auth.signOut();
-        setAuthState({
-          user: null,
-          isAuthenticated: false,
-          isLoading: false
-        });
-      }
-    } catch (error) {
-      console.error('Error loading user data:', error);
-      setAuthState({
-        user: null,
-        isAuthenticated: false,
-        isLoading: false
-      });
-    }
-  };
+  const mapUser = (rawUser: any): User => ({
+    id: rawUser.id,
+    email: rawUser.email,
+    name: rawUser.name || rawUser.email,
+    role: rawUser.role === 'editor' ? 'editor' : 'admin',
+    createdAt: new Date(rawUser.createdAt || Date.now()),
+    lastLogin: rawUser.lastLogin ? new Date(rawUser.lastLogin) : new Date()
+  });
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/backoffice-login`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({ email, password }),
-        }
-      );
+      const response = await fetch('/api/backoffice-auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
       const result = await response.json();
 
-      if (!result.success || !result.session) {
+      if (!result.success || !result.token || !result.user) {
         return false;
       }
 
-      await supabase.auth.setSession({
-        access_token: result.session.access_token,
-        refresh_token: result.session.refresh_token,
-      });
+      setBackofficeSessionToken(result.token);
 
       setAuthState({
-        user: result.user,
+        user: mapUser(result.user),
         isAuthenticated: true,
         isLoading: false,
       });
@@ -133,7 +105,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
+    clearBackofficeSessionToken();
+    clearContentAdminToken();
     setAuthState({
       user: null,
       isAuthenticated: false,

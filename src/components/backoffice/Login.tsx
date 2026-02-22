@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { LogIn, Eye, EyeOff } from 'lucide-react';
+import { setContentAdminToken } from '../../lib/contentAuth';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [contentAdminToken, setContentAdminTokenInput] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -16,9 +18,16 @@ const Login: React.FC = () => {
     setError('');
 
     try {
+      if (!contentAdminToken.trim()) {
+        setError('Indtast Content Admin Token');
+        return;
+      }
+
       const success = await login(email, password);
       if (!success) {
         setError('Ugyldig email eller adgangskode');
+      } else {
+        setContentAdminToken(contentAdminToken.trim());
       }
     } catch (err) {
       setError('Der opstod en fejl. Prøv igen.');
@@ -63,6 +72,22 @@ const Login: React.FC = () => {
               />
             </div>
             
+            <div>
+              <label htmlFor="content-admin-token" className="block text-sm font-medium text-gray-700">
+                Content Admin Token
+              </label>
+              <input
+                id="content-admin-token"
+                name="content-admin-token"
+                type="password"
+                required
+                value={contentAdminToken}
+                onChange={(e) => setContentAdminTokenInput(e.target.value)}
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-red-500 focus:border-red-500 focus:z-10 sm:text-sm"
+                placeholder="Token til indholds-API"
+              />
+            </div>
+
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 Adgangskode
