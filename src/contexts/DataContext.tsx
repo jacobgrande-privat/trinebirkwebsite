@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { CalendarEvent, PageContent, SiteConfig, User } from '../types';
-import { supabase } from '../lib/supabase';
+import { getContentAdminToken } from '../lib/contentAuth';
 
 interface DataContextType {
   events: CalendarEvent[];
@@ -25,6 +25,13 @@ interface DataContextType {
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
+const CONTENT_API_PATH = '/api/content';
+
+interface SerializedContent {
+  siteConfig: SiteConfig;
+  pages: Array<Omit<PageContent, 'createdAt' | 'updatedAt'> & { createdAt: string; updatedAt: string }>;
+  events: Array<Omit<CalendarEvent, 'date' | 'createdAt' | 'updatedAt'> & { date: string; createdAt: string; updatedAt: string }>;
+}
 
 const defaultSiteConfig: SiteConfig = {
   siteName: 'Trine Birk - Socialdemokratiet',
@@ -213,80 +220,53 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const loadContentFromJSON = async () => {
     try {
-      const { data: fileData, error: downloadError } = await supabase.storage
-        .from('content')
-        .download('content.json');
-
-      if (downloadError) {
-        console.log('No content.json in storage, initializing from local file');
-        const response = await fetch('/content.json');
-        const localData = await response.json();
-
-        const contentBlob = new Blob([JSON.stringify(localData, null, 2)], { type: 'application/json' });
-
-        const { error: uploadError } = await supabase.storage
-          .from('content')
-          .upload('content.json', contentBlob, { upsert: true });
-
-        if (uploadError) {
-          console.error('Error uploading initial content:', uploadError);
-        }
-
-        if (localData.siteConfig) setSiteConfig(localData.siteConfig);
-        if (localData.pages) {
-          const mappedPages: PageContent[] = localData.pages.map((page: any) => ({
-            ...page,
-            createdAt: new Date(page.createdAt),
-            updatedAt: new Date(page.updatedAt)
-          }));
-          setPages(mappedPages);
-        }
-        if (localData.events) {
-          const mappedEvents: CalendarEvent[] = localData.events.map((event: any) => ({
-            ...event,
-            date: new Date(event.date),
-            createdAt: new Date(event.createdAt),
-            updatedAt: new Date(event.updatedAt)
-          }));
-          setEvents(mappedEvents);
-        }
+      const apiResponse = await fetch(CONTENT_API_PATH, { cache: 'no-store' });
+      if (apiResponse.ok) {
+        const data = await apiResponse.json();
+        applyLoadedContent(data);
         return;
       }
 
-      const text = await fileData.text();
-      const data = JSON.parse(text);
-
-      if (data.siteConfig) {
-        setSiteConfig(data.siteConfig);
+      const fallbackResponse = await fetch('/content.json', { cache: 'no-store' });
+      if (!fallbackResponse.ok) {
+        throw new Error(`Failed to load content: ${fallbackResponse.status} ${fallbackResponse.statusText}`);
       }
 
-      if (data.pages) {
-        const mappedPages: PageContent[] = data.pages.map((page: any) => ({
-          ...page,
-          createdAt: new Date(page.createdAt),
-          updatedAt: new Date(page.updatedAt)
-        }));
-        setPages(mappedPages);
-      }
-
-      if (data.events) {
-        const mappedEvents: CalendarEvent[] = data.events.map((event: any) => ({
-          ...event,
-          date: new Date(event.date),
-          createdAt: new Date(event.createdAt),
-          updatedAt: new Date(event.updatedAt)
-        }));
-        setEvents(mappedEvents);
-      }
+      const fallbackData = await fallbackResponse.json();
+      applyLoadedContent(fallbackData);
     } catch (error) {
-      console.error('Error loading content from storage:', error);
+      console.error('Error loading content from local file:', error);
     }
   };
 
+  const applyLoadedContent = (data: Partial<SerializedContent>) => {
+    if (data.siteConfig) {
+      setSiteConfig(data.siteConfig);
+    }
+
+    if (data.pages) {
+      const mappedPages: PageContent[] = data.pages.map(page => ({
+        ...page,
+        createdAt: new Date(page.createdAt),
+        updatedAt: new Date(page.updatedAt)
+      }));
+      setPages(mappedPages);
+    }
+
+    if (data.events) {
+      const mappedEvents: CalendarEvent[] = data.events.map(event => ({
+        ...event,
+        date: new Date(event.date),
+        createdAt: new Date(event.createdAt),
+        updatedAt: new Date(event.updatedAt)
+      }));
+      setEvents(mappedEvents);
+    }
+  };
 
   const saveContentToStorage = async (updatedSiteConfig?: SiteConfig, updatedPages?: PageContent[], updatedEvents?: CalendarEvent[]) => {
     try {
-      const contentData = {
+      const contentData: SerializedContent = {
         siteConfig: updatedSiteConfig || siteConfig,
         pages: (updatedPages || pages).map(page => ({
           ...page,
@@ -301,14 +281,23 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }))
       };
 
-      const contentBlob = new Blob([JSON.stringify(contentData, null, 2)], { type: 'application/json' });
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+      const contentAdminToken = getContentAdminToken();
+      if (contentAdminToken) {
+        headers['x-content-admin-token'] = contentAdminToken;
+      }
 
-      const { error } = await supabase.storage
-        .from('content')
-        .upload('content.json', contentBlob, { upsert: true });
+      const response = await fetch(CONTENT_API_PATH, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(contentData)
+      });
 
-      if (error) {
-        console.error('Error saving content to storage:', error);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to persist content: ${response.status} ${errorText}`);
       }
     } catch (error) {
       console.error('Error saving content:', error);
