@@ -1,9 +1,9 @@
 {
   "siteConfig": {
-    "siteName": "Trine Birk AAAAAAAndersen - Socialdemokratiet",
+    "siteName": "Trine Birk Aandersen - Socialdemokratiet",
     "contactEmail": "tria2021@yahoo.com",
     "phoneNumber": "+45 11 11 11 11",
-    "address": "Socialdemokratiet TøØØØØØØØØØØøløse, 4300 Holbæk",
+    "address": "Socialdemokratiet TØølløse, 4300 Holbæk",
     "contactForm": {
       "recipientEmail": "tria2021@yahoo.com",
       "smtpSettings": {
@@ -27,8 +27,8 @@
       "hero": {
         "badge": "Trine Birk - Socialdemokratiet",
         "title": "Trine",
-        "titleHighlight": "Birk AAaandersen",
-        "description": "Med erfaring som boooomselector og engageret i lokal politik kæmper jeg for et stærkere lokalsamfund, hvor børn, familier og ældre får den omsorg de fortjener.",
+        "titleHighlight": "Birk Aandersen",
+        "description": "Med erfaring som bomselector og engageret i lokal politik kæmper jeg for et stærkere lokalsamfund, hvor børn, familier og ældre får den omsorg de fortjener.",
         "button1Text": "Se Mine Mærkesager",
         "button2Text": "Kontakt Mig",
         "yearsExperience": "15",
