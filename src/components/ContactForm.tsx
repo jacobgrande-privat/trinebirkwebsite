@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Send, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface FormData {
@@ -23,6 +23,21 @@ const ContactForm: React.FC = () => {
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [emailEnabled, setEmailEnabled] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const loadEmailStatus = async () => {
+      try {
+        const response = await fetch('/api/contact-form', { method: 'GET' });
+        const result = await response.json().catch(() => ({}));
+        setEmailEnabled(!!result.enabled);
+      } catch {
+        setEmailEnabled(false);
+      }
+    };
+
+    loadEmailStatus();
+  }, []);
 
   // Sanitize input by removing HTML tags and dangerous script content
   const sanitizeInput = (input: string, allowWhitespace: boolean = false): string => {
@@ -158,7 +173,23 @@ const ContactForm: React.FC = () => {
         Har du spørgsmål eller vil du dele dine tanker? Jeg vil gerne høre fra dig.
       </p>
 
-      {submitStatus === 'error' && (
+      {emailEnabled === false && (
+        <div className="mb-6 rounded-xl border border-slate-200 bg-gradient-to-r from-slate-50 to-blue-50 p-5">
+          <div className="flex items-start gap-3">
+            <AlertCircle size={20} className="text-slate-600 flex-shrink-0 mt-0.5" aria-hidden="true" />
+            <div>
+              <p className="font-semibold text-slate-800">
+                Det er desværre ikke muligt at sende emails lige nu
+              </p>
+              <p className="text-sm text-slate-600 mt-1">
+                Prøv venligst igen senere.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {emailEnabled !== false && submitStatus === 'error' && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6" role="alert" aria-live="assertive">
           <div className="flex items-start gap-2">
             <AlertCircle size={20} className="flex-shrink-0 mt-0.5" aria-hidden="true" />
@@ -170,6 +201,7 @@ const ContactForm: React.FC = () => {
         </div>
       )}
 
+      {emailEnabled !== false && (
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="contact-name" className="sr-only">Dit navn</label>
@@ -257,6 +289,7 @@ const ContactForm: React.FC = () => {
           )}
         </button>
       </form>
+      )}
     </div>
   );
 };

@@ -81,7 +81,18 @@ const resolveSettings = async (): Promise<EmailSettings> => {
 };
 
 export default async (request: Request): Promise<Response> => {
-  if (request.method.toUpperCase() !== 'POST') {
+  const method = request.method.toUpperCase();
+
+  if (method === 'GET') {
+    try {
+      const settings = await resolveSettings();
+      return jsonResponse({ enabled: !!settings.enabled }, 200);
+    } catch {
+      return jsonResponse({ enabled: false }, 200);
+    }
+  }
+
+  if (method !== 'POST') {
     return jsonResponse({ error: 'Method not allowed' }, 405);
   }
 
