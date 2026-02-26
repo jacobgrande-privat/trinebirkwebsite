@@ -1,10 +1,6 @@
 import React, { useState } from 'react';
 import { Send, CheckCircle, AlertCircle } from 'lucide-react';
 
-interface ContactFormProps {
-  recipientEmail?: string;
-}
-
 interface FormData {
   name: string;
   email: string;
@@ -17,7 +13,7 @@ interface FormErrors {
   message?: string;
 }
 
-const ContactForm: React.FC<ContactFormProps> = ({ recipientEmail }) => {
+const ContactForm: React.FC = () => {
   const [formData, setFormData] = useState<FormData>({
     name: '',
     email: '',
@@ -111,12 +107,9 @@ const ContactForm: React.FC<ContactFormProps> = ({ recipientEmail }) => {
         message: sanitizeInput(formData.message, true)
       };
 
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/contact-form`;
-
-      const response = await fetch(apiUrl, {
+      const response = await fetch('/api/contact-form', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(sanitizedData)

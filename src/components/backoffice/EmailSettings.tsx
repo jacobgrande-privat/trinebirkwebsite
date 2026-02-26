@@ -13,6 +13,7 @@ interface EmailSettingsData {
   from_name: string;
   recipient_email: string;
   enabled: boolean;
+  password_from_env?: boolean;
 }
 
 export default function EmailSettings() {
@@ -61,7 +62,12 @@ export default function EmailSettings() {
         throw new Error(result.error || 'Ukendt fejl ved indlæsning');
       }
 
-      if (result.settings) setSettings(result.settings);
+      if (result.settings) {
+        setSettings({
+          ...result.settings,
+          password_from_env: !!result.password_from_env,
+        });
+      }
     } catch (error) {
       console.error('Error loading email settings:', error);
       setMessage({ type: 'error', text: 'Kunne ikke indlæse email indstillinger' });
@@ -252,6 +258,12 @@ export default function EmailSettings() {
                 <label className="block text-sm font-medium text-slate-900 mb-2">
                   Udgående adgangskode *
                 </label>
+                <div className="mb-2 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                  Anbefalet opsaetning: Saet Brevo noeglen i Netlify miljoevariablen `BREVO_SMTP_PASSWORD`.
+                  {settings.password_from_env
+                    ? ' Miljoevariablen er aktiv og bruges ved afsendelse i stedet for feltet her.'
+                    : ' Hvis sat, bruges miljoevariablen ved afsendelse i stedet for feltet her.'}
+                </div>
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}

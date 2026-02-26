@@ -1,9 +1,12 @@
-import { createClient } from '@supabase/supabase-js';
+import { getStore } from '@netlify/blobs';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
 const EMAIL_SETTINGS_ID = '00000000-0000-0000-0000-000000000001';
+const STORE_NAME = 'site-settings';
+const EMAIL_SETTINGS_KEY = 'email/settings';
 
 interface EmailSettingsPayload {
+  id?: string;
   smtp_host: string;
   smtp_port: number;
   smtp_username: string;
@@ -14,6 +17,25 @@ interface EmailSettingsPayload {
   recipient_email: string;
   enabled: boolean;
 }
+
+type StoredEmailSettings = EmailSettingsPayload & {
+  id: string;
+  updated_at?: string;
+  updated_by_email?: string;
+};
+
+const defaultEmailSettings: StoredEmailSettings = {
+  id: EMAIL_SETTINGS_ID,
+  smtp_host: 'smtp-relay.brevo.com',
+  smtp_port: 587,
+  smtp_username: '',
+  smtp_password: '',
+  smtp_secure: false,
+  from_email: '',
+  from_name: '',
+  recipient_email: '',
+  enabled: false,
+};
 
 const jsonResponse = (body: unknown, status = 200): Response =>
   new Response(JSON.stringify(body), {
@@ -81,11 +103,8 @@ export default async (request: Request): Promise<Response> => {
   const method = request.method.toUpperCase();
 
   const sessionSecret = process.env.BACKOFFICE_SESSION_SECRET;
-  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!sessionSecret || !supabaseUrl || !supabaseServiceRoleKey) {
-    return jsonResponse({ error: 'Missing BACKOFFICE_SESSION_SECRET or SUPABASE env vars' }, 500);
+  if (!sessionSecret) {
+    return jsonResponse({ error: 'Missing BACKOFFICE_SESSION_SECRET env var' }, 500);
   }
 
   const token = parseAuthHeaderToken(request.headers.get('authorization'));
@@ -94,25 +113,24 @@ export default async (request: Request): Promise<Response> => {
   const verified = verifySessionToken(token, sessionSecret);
   if (!verified.valid) return jsonResponse({ error: 'Invalid or expired session token' }, 401);
 
-  const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+  const store = getStore({ name: STORE_NAME, consistency: 'strong' });
+  const envPassword = process.env.BREVO_SMTP_PASSWORD || process.env.SMTP_PASSWORD || '';
+  const passwordFromEnv = !!envPassword;
 
   try {
     if (method === 'GET') {
-      const { data, error } = await supabase
-        .from('email_settings')
-        .select('*')
-        .eq('id', EMAIL_SETTINGS_ID)
-        .maybeSingle();
-
-      if (error) {
-        return jsonResponse({ error: `Failed to load email settings: ${error.message}` }, 500);
-      }
-
+      let data = await store.get(EMAIL_SETTINGS_KEY, { type: 'json' }) as StoredEmailSettings | null;
       if (!data) {
-        return jsonResponse({ error: 'Email settings row not found' }, 404);
+        data = { ...defaultEmailSettings };
+        await store.setJSON(EMAIL_SETTINGS_KEY, data);
       }
 
-      return jsonResponse({ settings: data }, 200);
+      const sanitized = {
+        ...data,
+        smtp_password: passwordFromEnv ? '' : data.smtp_password,
+      };
+
+      return jsonResponse({ settings: sanitized, password_from_env: passwordFromEnv }, 200);
     }
 
     if (method === 'PUT') {
@@ -121,24 +139,14 @@ export default async (request: Request): Promise<Response> => {
         return jsonResponse({ error: 'Invalid email settings payload' }, 400);
       }
 
-      const { data: userRecord } = await supabase
-        .from('backoffice_users')
-        .select('id')
-        .ilike('email', verified.email)
-        .maybeSingle();
-
-      const { error } = await supabase
-        .from('email_settings')
-        .update({
-          ...body,
-          updated_at: new Date().toISOString(),
-          updated_by: userRecord?.id ?? null,
-        })
-        .eq('id', EMAIL_SETTINGS_ID);
-
-      if (error) {
-        return jsonResponse({ error: `Failed to save email settings: ${error.message}` }, 500);
-      }
+      const stored: StoredEmailSettings = {
+        id: EMAIL_SETTINGS_ID,
+        ...body,
+        smtp_password: passwordFromEnv ? '' : body.smtp_password,
+        updated_at: new Date().toISOString(),
+        updated_by_email: verified.email,
+      };
+      await store.setJSON(EMAIL_SETTINGS_KEY, stored);
 
       return jsonResponse({ success: true }, 200);
     }

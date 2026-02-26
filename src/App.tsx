@@ -421,7 +421,7 @@ function AppContent() {
               </div>
 
               <div className="bg-white p-8 rounded-xl text-gray-900">
-                <ContactForm recipientEmail={siteConfig.contactForm.recipientEmail} />
+                <ContactForm />
               </div>
             </div>
           </div>
