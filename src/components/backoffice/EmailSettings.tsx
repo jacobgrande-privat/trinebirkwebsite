@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, Save, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { getBackofficeSessionToken } from '../../lib/backofficeSession';
 
 interface EmailSettingsData {
   id: string;
@@ -39,17 +39,29 @@ export default function EmailSettings() {
 
   const loadSettings = async () => {
     try {
-      const { data, error } = await supabase
-        .from('email_settings')
-        .select('*')
-        .eq('id', '00000000-0000-0000-0000-000000000001')
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (data) {
-        setSettings(data);
+      const token = getBackofficeSessionToken();
+      if (!token) {
+        setMessage({ type: 'error', text: 'Session udløbet. Log ind igen.' });
+        return;
       }
+
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), 15000);
+      const response = await fetch('/api/email-settings', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        signal: controller.signal,
+      });
+      window.clearTimeout(timeout);
+
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.error || 'Ukendt fejl ved indlæsning');
+      }
+
+      if (result.settings) setSettings(result.settings);
     } catch (error) {
       console.error('Error loading email settings:', error);
       setMessage({ type: 'error', text: 'Kunne ikke indlæse email indstillinger' });
@@ -64,11 +76,18 @@ export default function EmailSettings() {
     setMessage(null);
 
     try {
-      const { data: userData } = await supabase.auth.getUser();
+      const token = getBackofficeSessionToken();
+      if (!token) {
+        throw new Error('Session udløbet');
+      }
 
-      const { error } = await supabase
-        .from('email_settings')
-        .update({
+      const response = await fetch('/api/email-settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
           smtp_host: settings.smtp_host,
           smtp_port: settings.smtp_port,
           smtp_username: settings.smtp_username,
@@ -78,12 +97,13 @@ export default function EmailSettings() {
           from_name: settings.from_name,
           recipient_email: settings.recipient_email,
           enabled: settings.enabled,
-          updated_at: new Date().toISOString(),
-          updated_by: userData.user?.id,
-        })
-        .eq('id', '00000000-0000-0000-0000-000000000001');
+        }),
+      });
 
-      if (error) throw error;
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.error || 'Ukendt fejl ved gem');
+      }
 
       setMessage({ type: 'success', text: 'Email indstillinger gemt' });
     } catch (error) {
@@ -150,6 +170,20 @@ export default function EmailSettings() {
             </div>
 
             <div className="space-y-4 p-4 border-2 border-blue-200 rounded-lg bg-blue-50">
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setSettings(prev => ({
+                    ...prev,
+                    smtp_host: 'smtp-relay.brevo.com',
+                    smtp_port: 587,
+                    smtp_secure: false,
+                  }))}
+                  className="text-xs px-3 py-1.5 rounded border border-blue-300 text-blue-700 hover:bg-blue-100 transition-colors"
+                >
+                  Forudfyld Brevo SMTP
+                </button>
+              </div>
               <div className="flex items-start gap-2 pb-3 border-b border-blue-200">
                 <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
                 <div className="text-sm text-blue-800">
