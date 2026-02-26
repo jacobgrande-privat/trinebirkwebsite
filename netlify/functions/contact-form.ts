@@ -127,7 +127,7 @@ export default async (request: Request): Promise<Response> => {
 
     const settings = await resolveSettings();
     if (!settings.enabled) {
-      return jsonResponse({ error: 'Email sending is disabled' }, 503);
+      return jsonResponse({ error: 'Email udsendelse er ikke mulig' }, 503);
     }
 
     if (!settings.smtp_host || !settings.smtp_username || !settings.smtp_password) {
@@ -153,7 +153,7 @@ export default async (request: Request): Promise<Response> => {
       to: settings.recipient_email,
       replyTo: formData.email,
       subject: `Ny kontaktbesked fra ${formData.name}`,
-      text: `Ny kontaktbesked\n\nNavn: ${formData.name}\nEmail: ${formData.email}\n\nBesked:\n${formData.message}\n\n---\nDenne besked blev sendt fra kontaktformularen på din hjemmeside.`,
+      text: `Ny kontaktbesked\n\nNavn: ${formData.name}\nEmail: ${formData.email}\n\nBesked:\n${formData.message}\n\n---\nDenne besked blev sendt fra kontaktformularen på Trine Birk Andersen's hjemmeside.`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #333;">Ny kontaktbesked</h2>
@@ -166,7 +166,7 @@ export default async (request: Request): Promise<Response> => {
             <p style="margin: 0; white-space: pre-wrap;">${formData.message}</p>
           </div>
           <p style="color: #666; font-size: 12px; margin-top: 20px;">
-            Denne besked blev sendt fra kontaktformularen på din hjemmeside.
+            Denne besked blev sendt fra kontaktformularen på Trine Birk Andersen's hjemmeside.
           </p>
         </div>
       `,
