@@ -401,7 +401,7 @@ function AppContent() {
                     <img
                       src={content.contact.contactImageUrl}
                       alt="Kontakt"
-                      className="w-full h-64 object-cover"
+                      className="w-full h-auto object-contain"
                     />
                   </div>
                 )}
