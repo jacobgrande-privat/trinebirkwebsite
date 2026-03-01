@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Upload, X, Trash2, ExternalLink, Image as ImageIcon, Loader2 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { getBackofficeSessionToken } from '../../lib/backofficeSession';
 
 interface MediaFile {
+  key: string;
   name: string;
   url: string;
   size: number;
+  mimeType: string;
+  uploadedAt: string;
 }
 
 interface MediaPickerProps {
@@ -19,28 +22,44 @@ const MediaPicker: React.FC<MediaPickerProps> = ({ value, onChange, label = 'Bil
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [externalUrl, setExternalUrl] = useState('');
   const [activeTab, setActiveTab] = useState<'upload' | 'library' | 'external'>('library');
 
+  const getAuthHeaders = (): Record<string, string> => {
+    const token = getBackofficeSessionToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
+  const resolveErrorMessage = (payload: any): string => {
+    const apiError = payload?.error;
+    if (apiError && typeof apiError === 'object') {
+      const title = typeof apiError.title === 'string' ? apiError.title : '';
+      const detail = typeof apiError.detail === 'string' ? apiError.detail : '';
+      const action = typeof apiError.action === 'string' ? apiError.action : '';
+      return [title, detail, action].filter(Boolean).join(' ');
+    }
+    if (typeof apiError === 'string') return apiError;
+    if (typeof payload?.message === 'string') return payload.message;
+    return 'Handlingen kunne ikke gennemfoeres. Proev igen.';
+  };
+
   const loadMediaFiles = async () => {
     setIsLoading(true);
+    setErrorMessage('');
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/media-manager`;
-      const response = await fetch(apiUrl, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-      });
+      const response = await fetch('/api/media', { headers: getAuthHeaders() });
 
       if (response.ok) {
         const data = await response.json();
         setMediaFiles(data.files || []);
+      } else {
+        const error = await response.json().catch(() => null);
+        setErrorMessage(resolveErrorMessage(error));
       }
     } catch (error) {
       console.error('Error loading media files:', error);
+      setErrorMessage('Mediebiblioteket kunne ikke indlaeses. Proev igen om lidt.');
     } finally {
       setIsLoading(false);
     }
@@ -57,63 +76,57 @@ const MediaPicker: React.FC<MediaPickerProps> = ({ value, onChange, label = 'Bil
     if (!file) return;
 
     setIsUploading(true);
+    setErrorMessage('');
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
       const formData = new FormData();
       formData.append('file', file);
 
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/media-manager/upload`;
-      const response = await fetch(apiUrl, {
+      const response = await fetch('/api/media', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        },
+        headers: getAuthHeaders(),
         body: formData,
       });
 
       if (response.ok) {
         const data = await response.json();
         await loadMediaFiles();
-        onChange(data.url);
+        onChange(data.file?.url || '');
         setIsModalOpen(false);
+        e.target.value = '';
       } else {
         const error = await response.json();
-        alert(error.error || 'Upload fejlede');
+        setErrorMessage(resolveErrorMessage(error));
       }
     } catch (error) {
       console.error('Error uploading file:', error);
-      alert('Upload fejlede');
+      setErrorMessage('Upload fejlede. Tjek din forbindelse og proev igen.');
     } finally {
       setIsUploading(false);
     }
   };
 
-  const handleDeleteFile = async (filename: string, url: string) => {
+  const handleDeleteFile = async (file: MediaFile) => {
     if (!confirm('Er du sikker på at du vil slette dette billede?')) return;
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/media-manager/${filename}`;
-      const response = await fetch(apiUrl, {
+      setErrorMessage('');
+      const response = await fetch(`/api/media?key=${encodeURIComponent(file.key)}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        },
+        headers: getAuthHeaders(),
       });
 
       if (response.ok) {
         await loadMediaFiles();
-        if (value === url) {
+        if (value === file.url) {
           onChange('');
         }
+      } else {
+        const error = await response.json().catch(() => null);
+        setErrorMessage(resolveErrorMessage(error));
       }
     } catch (error) {
       console.error('Error deleting file:', error);
-      alert('Sletning fejlede');
+      setErrorMessage('Sletning fejlede. Proev igen.');
     }
   };
 
@@ -211,6 +224,12 @@ const MediaPicker: React.FC<MediaPickerProps> = ({ value, onChange, label = 'Bil
             </div>
 
             <div className="flex-1 overflow-y-auto p-4">
+              {errorMessage && (
+                <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {errorMessage}
+                </div>
+              )}
+
               {activeTab === 'library' && (
                 <div>
                   {isLoading ? (
@@ -227,7 +246,7 @@ const MediaPicker: React.FC<MediaPickerProps> = ({ value, onChange, label = 'Bil
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                       {mediaFiles.map((file) => (
                         <div
-                          key={file.name}
+                          key={file.key}
                           className="relative group border border-gray-200 rounded-lg overflow-hidden hover:border-red-500 transition-colors"
                         >
                           <button
@@ -247,7 +266,7 @@ const MediaPicker: React.FC<MediaPickerProps> = ({ value, onChange, label = 'Bil
                             <p className="text-xs text-gray-400">{formatFileSize(file.size)}</p>
                           </div>
                           <button
-                            onClick={() => handleDeleteFile(file.name, file.url)}
+                            onClick={() => handleDeleteFile(file)}
                             className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity"
                             title="Slet"
                           >
@@ -288,7 +307,7 @@ const MediaPicker: React.FC<MediaPickerProps> = ({ value, onChange, label = 'Bil
                       />
                     </label>
                     <p className="text-sm text-gray-500 mt-4">
-                      Understøttede formater: JPG, PNG, GIF, WebP, SVG
+                      Understoettede formater: JPG, PNG, WebP og GIF. Maks 4 MB.
                     </p>
                   </div>
                 </div>
