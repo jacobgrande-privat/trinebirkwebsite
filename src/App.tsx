@@ -467,7 +467,7 @@ function AppContent() {
                 alt="Socialdemokratiet logo"
                 className="w-10 h-10 object-contain"
               />
-              <div className="text-2xl font-bold text-gray-900">Trine Birk</div>
+              <div className="text-2xl font-bold text-gray-900">Trine Birk Andersen</div>
             </button>
             
             {/* Desktop Navigation */}
