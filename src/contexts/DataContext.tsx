@@ -182,7 +182,8 @@ const defaultSiteConfig: SiteConfig = {
       address: 'Socialdemokratiet Holbæk\nAlgade 3, 4300 Holbæk',
       facebookUrl: 'https://facebook.com/trinebirk',
       twitterUrl: '',
-      instagramUrl: 'https://instagram.com/trinebirk'
+      instagramUrl: 'https://instagram.com/trinebirk',
+      contactImageUrl: ''
     },
     calendar: {
       title: 'Kalender',

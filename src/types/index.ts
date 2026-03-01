@@ -112,6 +112,13 @@ export interface SiteConfig {
       phoneLabel: string;
       addressLabel: string;
       followTitle: string;
+      contactEmail?: string;
+      phoneNumber?: string;
+      address?: string;
+      facebookUrl?: string;
+      twitterUrl?: string;
+      instagramUrl?: string;
+      contactImageUrl?: string;
     };
     calendar: {
       title: string;

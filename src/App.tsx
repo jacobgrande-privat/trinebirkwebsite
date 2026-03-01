@@ -396,6 +396,16 @@ function AppContent() {
                   </div>
                 )}
 
+                {content.contact.contactImageUrl && (
+                  <div className="w-full rounded-xl overflow-hidden bg-red-500/20">
+                    <img
+                      src={content.contact.contactImageUrl}
+                      alt="Kontakt"
+                      className="w-full h-64 object-cover"
+                    />
+                  </div>
+                )}
+
                 {(content.contact.facebookUrl || content.contact.twitterUrl || content.contact.instagramUrl) && (
                   <div>
                     <h3 className="text-2xl font-bold mb-6">{content.contact.followTitle}</h3>

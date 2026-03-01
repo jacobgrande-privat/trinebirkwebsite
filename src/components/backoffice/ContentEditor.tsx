@@ -652,6 +652,24 @@ const ContentEditor: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              <div className="mt-8 pt-8 border-t border-gray-200 space-y-3">
+                <h4 className="text-md font-semibold text-gray-900">Kontakt Billede (venstre kolonne)</h4>
+                <MediaPicker
+                  value={content.contact.contactImageUrl || ''}
+                  onChange={(url) => updateContact('contactImageUrl', url)}
+                  label="Billede URL"
+                />
+                {content.contact.contactImageUrl && (
+                  <button
+                    type="button"
+                    onClick={() => updateContact('contactImageUrl', '')}
+                    className="px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+                  >
+                    Fjern Billede
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}
